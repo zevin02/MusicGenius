@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicGenius - 音乐创作</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .control-panel {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        .audio-player {
+            margin: 20px 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>MusicGenius</h1>
+            <p>智能音乐创作平台</p>
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">首页</a></li>
+                    <li><a href="{{ url_for('library') }}">音乐库</a></li>
+                    <li><a href="{{ url_for('create') }}">创作</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="create-section">
+            <h2>音乐创作</h2>
+            
+            <!-- 旋律生成表单 -->
+            <div class="control-panel">
+                <h3>生成旋律</h3>
+                <form id="melodyForm">
+                    <div class="form-group">
+                        <label for="style">风格:</label>
+                        <select id="style" name="style" required>
+                            {% for style in available_styles %}
+                            <option value="{{ style }}">{{ style }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="length">长度(小节):</label>
+                        <input type="number" id="length" name="length" min="1" max="32" value="8" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="seed">种子旋律(可选):</label>
+                        <input type="text" id="seed" name="seed" placeholder="输入音符序列，如: C4 D4 E4">
+                    </div>
+                    
+                    <button type="submit" class="button">生成旋律</button>
+                </form>
+                
+                <div id="melodyPlayer" style="display: none;">
+                    <h3>生成的旋律</h3>
+                    <audio controls class="audio-player">
+                        <source id="melodySource" src="" type="audio/wav">
+                        您的浏览器不支持音频播放。
+                    </audio>
+                </div>
+            </div>
+            
+            <!-- 风格迁移表单 -->
+            <div class="create-form" id="style-form-container">
+                <h3>风格迁移</h3>
+                <form id="style-form" class="form">
+                    <div class="form-group">
+                        <label for="style-input">选择输入文件:</label>
+                        <input type="file" id="style-input" name="input_file" accept=".mid,.midi" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="target-style">目标风格:</label>
+                        <select id="target-style" name="target_style" required>
+                            {% for style in available_styles %}
+                            <option value="{{ style }}">{{ style }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="style-strength">风格强度:</label>
+                        <input type="range" id="style-strength" name="strength" min="0" max="100" value="80">
+                        <span class="range-value">0.8</span>
+                    </div>
+                    
+                    <button type="submit" class="btn">转换风格</button>
+                </form>
+                
+                <div class="result-section">
+                    <div class="message" style="display: none;"></div>
+                    <div id="style-player" class="audio-player" style="display: none;">
+                        <audio controls></audio>
+                        <button class="play-btn">播放</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 伴奏生成表单 -->
+            <div class="create-form" id="accompaniment-form-container">
+                <h3>生成伴奏</h3>
+                <form id="accompaniment-form" class="form">
+                    <div class="form-group">
+                        <label for="accompaniment-input">选择旋律文件:</label>
+                        <input type="file" id="accompaniment-input" name="input_file" accept=".mid,.midi" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="accompaniment-style">伴奏风格:</label>
+                        <select id="accompaniment-style" name="style" required>
+                            {% for style in available_styles %}
+                            <option value="{{ style }}">{{ style }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn">生成伴奏</button>
+                </form>
+                
+                <div class="result-section">
+                    <div class="message" style="display: none;"></div>
+                    <div id="accompaniment-player" class="audio-player" style="display: none;">
+                        <audio controls></audio>
+                        <button class="play-btn">播放</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 MusicGenius. 所有权利保留。</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script>
+        document.getElementById('melodyForm').onsubmit = async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/generate_melody', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 更新音频源并显示播放器
+                    const audioSource = document.getElementById('melodySource');
+                    audioSource.src = '/output/' + data.audio_url;
+                    
+                    const audioPlayer = audioSource.parentElement;
+                    audioPlayer.load();  // 重新加载音频
+                    
+                    document.getElementById('melodyPlayer').style.display = 'block';
+                } else {
+                    alert('生成旋律失败：' + data.message);
+                }
+            } catch (error) {
+                alert('发生错误：' + error.message);
+            }
+        };
+    </script>
+</body>
+</html> 

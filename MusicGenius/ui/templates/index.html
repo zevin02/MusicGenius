@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MusicGenius - 智能音乐创作</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>MusicGenius</h1>
+            <p>智能音乐创作平台</p>
+            <nav>
+                <ul>
+                    <li><a href="{{ url_for('index') }}">首页</a></li>
+                    <li><a href="{{ url_for('library') }}">音乐库</a></li>
+                    <li><a href="{{ url_for('create') }}">创作</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <h2>欢迎使用 MusicGenius!</h2>
+            <p>使用AI辅助你的音乐创作之旅</p>
+        </div>
+    </section>
+
+    <section class="stats">
+        <div class="container">
+            <h2>平台统计</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>音乐曲目</h3>
+                    <p class="stat-number">{{ stats.total_tracks }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>流派种类</h3>
+                    <p class="stat-number">{{ stats.genres|length }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>乐器种类</h3>
+                    <p class="stat-number">{{ stats.instruments|length }}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>功能模块</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>旋律创作</h3>
+                    <p>使用AI生成各种风格的旋律</p>
+                    <a href="{{ url_for('create') }}?mode=melody" class="btn">开始创作</a>
+                </div>
+                <div class="feature-card">
+                    <h3>风格迁移</h3>
+                    <p>将你的音乐转换为不同的风格</p>
+                    <a href="{{ url_for('create') }}?mode=style" class="btn">转换风格</a>
+                </div>
+                <div class="feature-card">
+                    <h3>伴奏生成</h3>
+                    <p>自动为旋律添加和声与伴奏</p>
+                    <a href="{{ url_for('create') }}?mode=accompaniment" class="btn">生成伴奏</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="styles">
+        <div class="container">
+            <h2>可用风格</h2>
+            <div class="style-list">
+                {% for style in available_styles %}
+                <div class="style-item">{{ style }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="instruments">
+        <div class="container">
+            <h2>可用乐器</h2>
+            <div class="instrument-list">
+                {% for instrument in available_instruments %}
+                <div class="instrument-item">{{ instrument }}</div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2023 MusicGenius. 所有权利保留。</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html> 

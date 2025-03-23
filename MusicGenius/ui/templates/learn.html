@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习中心 - MusicGenius</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-music me-2"></i>MusicGenius
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('create') }}">创作</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('library') }}">音乐库</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('learn') }}">学习</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="container my-5">
+        <h1 class="mb-4">AI学习中心</h1>
+        <p class="lead mb-5">在这里您可以训练AI模型学习特定的音乐风格，提升创作能力</p>
+        
+        <!-- 学习工具标签页 -->
+        <ul class="nav nav-tabs" id="learningTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="melody-model-tab" data-bs-toggle="tab" data-bs-target="#melody-model" type="button" role="tab" aria-controls="melody-model" aria-selected="true">
+                    <i class="fas fa-music me-2"></i>旋律模型训练
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="style-learning-tab" data-bs-toggle="tab" data-bs-target="#style-learning" type="button" role="tab" aria-controls="style-learning" aria-selected="false">
+                    <i class="fas fa-palette me-2"></i>风格学习
+                </button>
+            </li>
+        </ul>
+
+        <!-- 标签页内容 -->
+        <div class="tab-content p-4 bg-light rounded-bottom" id="learningTabsContent">
+            <!-- 旋律模型训练 -->
+            <div class="tab-pane fade show active" id="melody-model" role="tabpanel" aria-labelledby="melody-model-tab">
+                <h3 class="mb-4">旋律模型训练</h3>
+                <p class="mb-4">通过训练旋律生成模型，使AI可以创作出您喜欢的风格的旋律。</p>
+
+                <!-- 选择曲目表单 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>第1步：选择训练数据</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>从您的音乐库中选择要用于训练的MIDI文件：</p>
+                        <form id="selectTracksForm" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="trackSearch" class="form-label">搜索曲目</label>
+                                <input type="text" class="form-control" id="trackSearch" placeholder="输入关键词筛选曲目">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="trackGenreFilter" class="form-label">按曲风筛选</label>
+                                <select class="form-select" id="trackGenreFilter">
+                                    <option value="">全部曲风</option>
+                                    <!-- 动态加载曲风选项 -->
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="tracksTable">
+                                        <thead>
+                                            <tr>
+                                                <th>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="selectAllTracks">
+                                                    </div>
+                                                </th>
+                                                <th>标题</th>
+                                                <th>艺术家</th>
+                                                <th>曲风</th>
+                                                <th>标签</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="tracksTableBody">
+                                            <!-- 动态填充曲目 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="noTracksMessage" class="text-center py-4 d-none">
+                                    <p class="text-muted">没有找到符合条件的曲目</p>
+                                    <a href="{{ url_for('library') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-plus me-1"></i>添加曲目到音乐库
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 训练参数表单 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>第2步：设置训练参数</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="melodyTrainingForm" class="row g-3">
+                            <div class="col-md-4">
+                                <label for="sequenceLength" class="form-label">序列长度</label>
+                                <input type="range" class="form-range" min="50" max="200" step="10" value="100" id="sequenceLength">
+                                <div class="text-center"><span id="sequenceLengthValue">100</span> 个音符</div>
+                                <small class="form-text text-muted">较长的序列能够捕捉更复杂的音乐结构，但会增加训练难度</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="epochs" class="form-label">训练轮次 (Epochs)</label>
+                                <input type="range" class="form-range" min="10" max="100" step="5" value="50" id="epochs">
+                                <div class="text-center"><span id="epochsValue">50</span> 轮</div>
+                                <small class="form-text text-muted">更多的训练轮次可以提高模型质量，但会增加训练时间</small>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="batchSize" class="form-label">批次大小 (Batch Size)</label>
+                                <input type="range" class="form-range" min="16" max="128" step="16" value="64" id="batchSize">
+                                <div class="text-center"><span id="batchSizeValue">64</span></div>
+                                <small class="form-text text-muted">较大的批次可以加速训练，但可能需要更多内存</small>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 启动训练按钮 -->
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" id="startMelodyTrainingBtn">
+                        <i class="fas fa-play me-2"></i>开始训练
+                    </button>
+                </div>
+
+                <!-- 训练进度 -->
+                <div id="melodyTrainingProgress" class="mt-4 d-none">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>训练进度</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="progress mb-3">
+                                <div id="melodyTrainingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <p id="melodyTrainingStatus">准备中...</p>
+                            <div class="text-center">
+                                <button type="button" class="btn btn-danger" id="cancelMelodyTrainingBtn">
+                                    <i class="fas fa-stop me-2"></i>取消训练
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 训练结果 -->
+                <div id="melodyTrainingResult" class="mt-4 d-none">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i><span id="melodyTrainingResultMessage"></span>
+                    </div>
+                    <p>现在您可以在创作中心使用训练好的模型生成旋律了！</p>
+                    <div class="text-center">
+                        <a href="{{ url_for('create') }}" class="btn btn-primary">
+                            <i class="fas fa-music me-2"></i>前往创作中心
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 风格学习 -->
+            <div class="tab-pane fade" id="style-learning" role="tabpanel" aria-labelledby="style-learning-tab">
+                <h3 class="mb-4">风格学习</h3>
+                <p class="mb-4">让AI学习特定音乐作品的风格特点，用于后续的风格迁移创作。</p>
+
+                <!-- 风格定义表单 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>第1步：定义新风格</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="styleDefinitionForm" class="row g-3">
+                            <div class="col-md-12">
+                                <label for="styleName" class="form-label">风格名称</label>
+                                <input type="text" class="form-control" id="styleName" placeholder="例如：爵士、古典、摇滚等" required>
+                                <small class="form-text text-muted">为您要创建的风格起一个独特的名称，方便后续识别</small>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 选择曲目表单 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>第2步：选择代表这种风格的曲目</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>从您的音乐库中选择能代表这种风格的MIDI文件：</p>
+                        <form id="selectStyleTracksForm" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="styleTrackSearch" class="form-label">搜索曲目</label>
+                                <input type="text" class="form-control" id="styleTrackSearch" placeholder="输入关键词筛选曲目">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="styleTrackGenreFilter" class="form-label">按曲风筛选</label>
+                                <select class="form-select" id="styleTrackGenreFilter">
+                                    <option value="">全部曲风</option>
+                                    <!-- 动态加载曲风选项 -->
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="styleTracksTable">
+                                        <thead>
+                                            <tr>
+                                                <th>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox" id="selectAllStyleTracks">
+                                                    </div>
+                                                </th>
+                                                <th>标题</th>
+                                                <th>艺术家</th>
+                                                <th>曲风</th>
+                                                <th>标签</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="styleTracksTableBody">
+                                            <!-- 动态填充曲目 -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="noStyleTracksMessage" class="text-center py-4 d-none">
+                                    <p class="text-muted">没有找到符合条件的曲目</p>
+                                    <a href="{{ url_for('library') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-plus me-1"></i>添加曲目到音乐库
+                                    </a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 训练参数表单 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>第3步：设置训练参数</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="styleTrainingForm" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="styleEpochs" class="form-label">训练轮次 (Epochs)</label>
+                                <input type="range" class="form-range" min="10" max="50" step="5" value="30" id="styleEpochs">
+                                <div class="text-center"><span id="styleEpochsValue">30</span> 轮</div>
+                                <small class="form-text text-muted">更多的训练轮次可以提高风格捕捉的准确性</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="styleBatchSize" class="form-label">批次大小 (Batch Size)</label>
+                                <input type="range" class="form-range" min="8" max="64" step="8" value="32" id="styleBatchSize">
+                                <div class="text-center"><span id="styleBatchSizeValue">32</span></div>
+                                <small class="form-text text-muted">较大的批次可以加速训练，但可能需要更多内存</small>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 启动风格学习按钮 -->
+                <div class="text-center">
+                    <button type="button" class="btn btn-primary btn-lg" id="startStyleLearningBtn">
+                        <i class="fas fa-play me-2"></i>开始学习风格
+                    </button>
+                </div>
+
+                <!-- 风格学习进度 -->
+                <div id="styleLearningProgress" class="mt-4 d-none">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5>学习进度</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="progress mb-3">
+                                <div id="styleLearningProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <p id="styleLearningStatus">准备中...</p>
+                            <div class="text-center">
+                                <button type="button" class="btn btn-danger" id="cancelStyleLearningBtn">
+                                    <i class="fas fa-stop me-2"></i>取消学习
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 风格学习结果 -->
+                <div id="styleLearningResult" class="mt-4 d-none">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i><span id="styleLearningResultMessage"></span>
+                    </div>
+                    <p>现在您可以在创作中心使用学习到的风格进行风格迁移了！</p>
+                    <div class="text-center">
+                        <a href="{{ url_for('create') }}" class="btn btn-primary">
+                            <i class="fas fa-exchange-alt me-2"></i>前往创作中心
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>MusicGenius</h5>
+                    <p>基于人工智能的音乐创作平台</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>&copy; 2023 MusicGenius. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript 依赖 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/learn.js') }}"></script>
+</body>
+</html> 

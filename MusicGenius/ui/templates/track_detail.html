@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ track.title }} - MusicGenius</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-music me-2"></i>MusicGenius
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">首页</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('create') }}">创作</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('library') }}">音乐库</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('learn') }}">学习</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="container my-5">
+        <div class="mb-4">
+            <a href="{{ url_for('library') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>返回音乐库
+            </a>
+        </div>
+
+        <!-- 曲目信息 -->
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <i class="fas fa-music fa-5x text-primary mb-3"></i>
+                        <h2 class="card-title">{{ track.title }}</h2>
+                        <p class="card-text text-muted">{{ track.artist or '未知艺术家' }}</p>
+                        <div class="mb-3">
+                            {% if track.genre %}
+                            <span class="badge bg-primary">{{ track.genre }}</span>
+                            {% endif %}
+                            {% for tag in track.tags %}
+                            <span class="badge bg-secondary">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        <p class="card-text">
+                            <small class="text-muted">添加时间: {{ track.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </p>
+                        <div class="btn-group d-flex mb-3">
+                            <button class="btn btn-success flex-fill" id="playTrackBtn" data-track-path="{{ track.filepath }}">
+                                <i class="fas fa-play me-2"></i>播放
+                            </button>
+                            <a href="{{ track.filepath }}" download class="btn btn-primary flex-fill">
+                                <i class="fas fa-download me-2"></i>下载
+                            </a>
+                        </div>
+                        <button class="btn btn-outline-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteTrackModal">
+                            <i class="fas fa-trash me-2"></i>删除
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 编辑信息卡片 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>编辑信息</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="editTrackForm">
+                            <input type="hidden" id="trackId" value="{{ track.id }}">
+                            <div class="mb-3">
+                                <label for="editTitle" class="form-label">标题</label>
+                                <input type="text" class="form-control" id="editTitle" value="{{ track.title }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editArtist" class="form-label">艺术家</label>
+                                <input type="text" class="form-control" id="editArtist" value="{{ track.artist or '' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editGenre" class="form-label">曲风</label>
+                                <input type="text" class="form-control" id="editGenre" value="{{ track.genre or '' }}">
+                            </div>
+                            <div class="mb-3">
+                                <label for="editTags" class="form-label">标签 (以逗号分隔)</label>
+                                <input type="text" class="form-control" id="editTags" value="{{ track.tags|join(',') }}">
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">保存修改</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-8">
+                <!-- 曲目可视化 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>MIDI 可视化</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="midi-visualizer" id="trackVisualizer">
+                            <!-- MIDI 可视化将在这里显示 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 曲目分析 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>音乐分析</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if 'error' in analysis %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>分析出错: {{ analysis.error }}
+                        </div>
+                        {% else %}
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header">基本信息</div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>调性:</span>
+                                                <span class="fw-bold">{{ analysis.key or '未检测到' }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>速度 (BPM):</span>
+                                                <span class="fw-bold">{{ analysis.tempo or '未检测到' }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>时长:</span>
+                                                <span class="fw-bold">{{ analysis.duration|round(2) if analysis.duration else '未检测到' }} 秒</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>音符数量:</span>
+                                                <span class="fw-bold">{{ analysis.note_count or '未检测到' }}</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header">音乐特征</div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>音符密度:</span>
+                                                <span class="fw-bold">{{ analysis.features.note_density|round(2) if analysis.features.note_density else '未检测到' }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>音高范围:</span>
+                                                <span class="fw-bold">{{ analysis.features.pitch_range or '未检测到' }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>和弦密度:</span>
+                                                <span class="fw-bold">{{ analysis.features.chord_density|round(2) if analysis.features.chord_density else '未检测到' }}</span>
+                                            </li>
+                                            <li class="list-group-item d-flex justify-content-between">
+                                                <span>平均音符时长:</span>
+                                                <span class="fw-bold">{{ analysis.features.avg_note_duration|round(2) if analysis.features.avg_note_duration else '未检测到' }} 秒</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if analysis.instruments %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header">使用的乐器</div>
+                                    <div class="card-body">
+                                        <ul class="list-group list-group-flush">
+                                            {% for instrument in analysis.instruments %}
+                                            <li class="list-group-item">{{ instrument }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if analysis.chords %}
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header">和弦进行</div>
+                                    <div class="card-body">
+                                        <div class="chord-progression">
+                                            {% for chord in analysis.chords %}
+                                            <span class="badge bg-light text-dark border m-1 p-2">{{ chord }}</span>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- 创作操作 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5>创作操作</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-grid">
+                                    <a href="{{ url_for('create') }}?style_source={{ track.id }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-exchange-alt me-2"></i>应用此风格到其他旋律
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-grid">
+                                    <a href="{{ url_for('create') }}?generate_accompaniment={{ track.id }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-guitar me-2"></i>为此旋律生成伴奏
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-grid">
+                                    <a href="{{ url_for('create') }}?apply_effects={{ track.id }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-sliders-h me-2"></i>应用音频特效
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-grid">
+                                    <a href="{{ url_for('learn') }}?train_style={{ track.id }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-brain me-2"></i>从此曲目学习风格
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 删除确认模态框 -->
+    <div class="modal fade" id="deleteTrackModal" tabindex="-1" aria-labelledby="deleteTrackModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteTrackModalLabel">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>您确定要删除曲目 "{{ track.title }}" 吗?</p>
+                    <p class="text-danger">此操作无法撤销。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <form id="deleteTrackForm" method="POST" action="{{ url_for('delete_track', track_id=track.id) }}">
+                        <button type="submit" class="btn btn-danger">删除</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音频播放器 -->
+    <div class="audio-player-container" id="audioPlayerContainer">
+        <div class="player-content">
+            <div class="player-controls">
+                <button id="audioPlayerCloseBtn" class="btn btn-sm btn-light">
+                    <i class="fas fa-times"></i>
+                </button>
+                <button id="audioPlayerPlayBtn" class="btn btn-primary">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button id="audioPlayerPauseBtn" class="btn btn-primary d-none">
+                    <i class="fas fa-pause"></i>
+                </button>
+                <span id="audioPlayerTitle" class="ms-3">{{ track.title }}</span>
+            </div>
+            <div class="player-progress">
+                <div class="progress">
+                    <div id="audioProgressBar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                    <small id="audioCurrentTime">0:00</small>
+                    <small id="audioDuration">0:00</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>MusicGenius</h5>
+                    <p>基于人工智能的音乐创作平台</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>&copy; 2023 MusicGenius. All rights reserved.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript 依赖 -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tone@14.8.40/build/Tone.min.js"></script>
+    <script src="{{ url_for('static', filename='js/midi-visualizer.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/track-detail.js') }}"></script>
+</body>
+</html> 
