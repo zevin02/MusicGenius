@@ -1,25 +1,44 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+"""
+MusicGenius - 智能音乐创作APP
+主入口文件
+"""
+
 import os
+import sys
 import json
 import shutil
-from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify
 from werkzeug.utils import secure_filename
-import tempfile
 from datetime import datetime
-from ..core import MusicCreator, MusicDatabase
-from ..utils import midi_utils
+from flask import Flask, render_template, request, redirect, url_for, flash, send_from_directory, jsonify
+import argparse  # 新增：导入 argparse 模块
 
-class MusicGeniusWebApp:
-    """基于Flask的MusicGenius Web应用"""
+# 添加当前目录到Python路径
+sys.path.insert(0, os.path.abspath('.'))
+
+# 导入相关模块
+from .core.music_creator import MusicCreator
+from .core.music_database import MusicDatabase
+from .utils import midi_utils
+
+class MusicGeniusApp:
+    """MusicGenius应用主类"""
     
-    def __init__(self, model_dir='models', output_dir='output', db_path='data/music_database.db',
-                 upload_folder='uploads', static_folder='static', template_folder='templates',
+    def __init__(self, model_dir='models', output_dir='output', 
+                 db_host='localhost', db_user='root', db_password='', db_name='music_genius',
+                 upload_folder='uploads', static_folder='ui/static', template_folder='ui/templates',
                  host='0.0.0.0', port=5000, debug=True):
-        """初始化Web应用
+        """初始化应用
         
         Args:
             model_dir (str): 模型目录
             output_dir (str): 输出目录
-            db_path (str): 数据库文件路径
+            db_host (str): MySQL服务器地址
+            db_user (str): MySQL用户名
+            db_password (str): MySQL密码
+            db_name (str): MySQL数据库名
             upload_folder (str): 上传文件目录
             static_folder (str): 静态文件目录
             template_folder (str): 模板文件目录
@@ -30,17 +49,20 @@ class MusicGeniusWebApp:
         self.model_dir = model_dir
         self.output_dir = output_dir
         self.upload_folder = upload_folder
-        self.db_path = db_path
         
         # 确保目录存在
         os.makedirs(model_dir, exist_ok=True)
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(upload_folder, exist_ok=True)
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
         
         # 创建核心组件
         self.music_creator = MusicCreator(model_dir=model_dir, output_dir=output_dir)
-        self.music_db = MusicDatabase(db_path=db_path)
+        self.music_db = MusicDatabase(
+            host=db_host,
+            user=db_user,
+            password=db_password,
+            database=db_name
+        )
         
         # 创建Flask应用
         self.app = Flask(__name__,
@@ -65,7 +87,11 @@ class MusicGeniusWebApp:
         def index():
             """主页"""
             # 获取统计信息
-            stats = self.music_db.get_track_statistics()
+            stats = {
+                'total_tracks': self.music_db.get_total_tracks(),
+                'genres': self.music_db.get_all_genres(),
+                'instruments': self.music_creator.get_available_instruments()
+            }
             
             # 获取可用的风格
             available_styles = self.music_creator.get_available_styles()
@@ -126,9 +152,19 @@ class MusicGeniusWebApp:
             # 获取可用的乐器
             available_instruments = self.music_creator.get_available_instruments()
             
+            # 可用效果列表
+            available_effects = [
+                {'name': '延迟', 'description': '添加回声效果'},
+                {'name': '合唱', 'description': '添加合唱效果'},
+                {'name': '混响', 'description': '添加空间感'},
+                {'name': '失真', 'description': '添加失真效果'},
+                {'name': '均衡器', 'description': '调整音色'}
+            ]
+            
             return render_template('create.html',
                                 available_styles=available_styles,
-                                available_instruments=available_instruments)
+                                available_instruments=available_instruments,
+                                available_effects=available_effects)
         
         @self.app.route('/generate_melody', methods=['POST'])
         def generate_melody():
@@ -140,6 +176,7 @@ class MusicGeniusWebApp:
                 tempo_bpm = int(request.form.get('tempo_bpm', 120))
                 instrument_name = request.form.get('instrument', 'Piano')
                 
+                #TODO 
                 # 生成MIDI文件
                 output_path = self.music_creator.generate_midi_file(
                     num_notes=num_notes,
@@ -653,4 +690,35 @@ class MusicGeniusWebApp:
         Returns:
             Flask: Flask应用对象
         """
-        return self.app 
+        return self.app
+
+def main():
+    """主函数，启动Web应用程序"""
+    # 使用 argparse 解析命令行参数
+    parser = argparse.ArgumentParser(description="启动 MusicGenius 应用")
+    parser.add_argument('--db_host', type=str, default='localhost', help='MySQL 服务器地址')
+    parser.add_argument('--db_user', type=str, default='root', help='MySQL 用户名')
+    parser.add_argument('--db_password', type=str, required=True, help='MySQL 密码')  # 必填参数
+    parser.add_argument('--db_name', type=str, default='music_genius', help='MySQL 数据库名')
+    parser.add_argument('--host', type=str, default='0.0.0.0', help='应用主机地址')
+    parser.add_argument('--port', type=int, default=5000, help='应用端口号')
+    parser.add_argument('--debug', action='store_true', help='是否开启调试模式')
+    
+    args = parser.parse_args()  # 解析命令行参数
+
+    # 创建应用实例
+    app = MusicGeniusApp(
+        db_host=args.db_host,
+        db_user=args.db_user,
+        db_password=args.db_password,  # 使用命令行参数
+        db_name=args.db_name,
+        host=args.host,
+        port=args.port,
+        debug=args.debug
+    )
+    
+    # 运行应用
+    app.run()
+
+if __name__ == "__main__":
+    main()

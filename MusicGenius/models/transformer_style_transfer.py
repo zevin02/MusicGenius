@@ -132,6 +132,14 @@ class TransformerStyleTransfer:
         self.model = None
         self.note_generator = LSTMMelodyGenerator(sequence_length=sequence_length)
         self.style_encodings = {}
+        self.styles = {
+            '古典': {'scale': [0, 2, 4, 5, 7, 9, 11], 'rhythm': [1, 0.5, 0.25]},
+            '流行': {'scale': [0, 2, 4, 5, 7, 9, 10], 'rhythm': [0.5, 0.25, 0.125]},
+            '爵士': {'scale': [0, 2, 3, 5, 7, 9, 10], 'rhythm': [0.75, 0.5, 0.25]},
+            '电子': {'scale': [0, 2, 4, 7, 9], 'rhythm': [0.25, 0.125]},
+            '民谣': {'scale': [0, 2, 4, 5, 7, 9, 10], 'rhythm': [1, 0.5]},
+            '蓝调': {'scale': [0, 3, 5, 6, 7, 10], 'rhythm': [1, 0.75]}
+        }
         
         if model_path and os.path.exists(model_path):
             self.load_model(model_path)
@@ -192,6 +200,12 @@ class TransformerStyleTransfer:
         
         # 准备序列
         network_input, network_output = self.note_generator.prepare_sequences(notes, pitch_names)
+        
+        # 获取风格信息
+        style_info = self.styles.get(style_name, {'scale': [0, 2, 4, 5, 7, 9, 11], 'rhythm': [1, 0.5, 0.25]})
+        
+        # 应用风格信息到训练数据
+        network_input = self.apply_style_to_input(network_input, style_info)
         
         # 构建Transformer模型
         if self.model is None:
@@ -468,3 +482,18 @@ class TransformerStyleTransfer:
         predictions = predictions / np.sum(predictions)
         
         return predictions
+
+    def apply_style_to_input(self, input_sequences, style_info):
+        """应用风格信息到输入序列
+        
+        Args:
+            input_sequences (ndarray): 输入序列
+            style_info (dict): 风格信息
+        
+        Returns:
+            ndarray: 应用了风格信息的输入序列
+        """
+        # 实现风格信息到输入序列的转换逻辑
+        # 这里需要根据你的具体需求来实现
+        # 这里只是一个示例，实际实现可能需要更复杂的逻辑
+        return input_sequences

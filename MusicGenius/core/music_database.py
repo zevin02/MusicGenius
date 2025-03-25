@@ -1,6 +1,60 @@
+"""
+MusicGenius - 音乐数据库管理模块
+
+MySQL表结构：
+
+1. tracks表 (曲目表)
+CREATE TABLE tracks (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255),
+    artist VARCHAR(255),
+    genre VARCHAR(100),
+    filepath VARCHAR(512) UNIQUE,
+    duration FLOAT,
+    tempo FLOAT,
+    `key` VARCHAR(10),
+    mode VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    features JSON,
+    INDEX idx_title (title),
+    INDEX idx_artist (artist),
+    INDEX idx_genre (genre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+2. tags表 (标签表)
+CREATE TABLE tags (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) UNIQUE,
+    INDEX idx_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+3. track_tags表 (曲目-标签关联表)
+CREATE TABLE track_tags (
+    track_id BIGINT,
+    tag_id BIGINT,
+    PRIMARY KEY (track_id, tag_id),
+    FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+    FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+    INDEX idx_track_id (track_id),
+    INDEX idx_tag_id (tag_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+4. instruments表 (乐器表)
+CREATE TABLE instruments (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    track_id BIGINT,
+    name VARCHAR(100),
+    program INT,
+    is_drum BOOLEAN,
+    FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+    INDEX idx_track_id (track_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+"""
+
 import os
 import json
-import sqlite3
+import mysql.connector
+from mysql.connector import Error
 import pandas as pd
 from datetime import datetime
 from ..utils import midi_utils
@@ -8,14 +62,19 @@ from ..utils import midi_utils
 class MusicDatabase:
     """音乐数据库管理类，用于管理音乐曲目库"""
     
-    def __init__(self, db_path='data/music_database.db'):
+    def __init__(self, host='localhost', user='root', password='', database='music_genius'):
         """初始化音乐数据库
         
         Args:
-            db_path (str): 数据库文件路径
+            host (str): MySQL服务器地址
+            user (str): 数据库用户名
+            password (str): 数据库密码
+            database (str): 数据库名称
         """
-        self.db_path = db_path
-        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        self.host = host
+        self.user = user
+        self.password = password
+        self.database = database
         self.conn = None
         self.cursor = None
         self.connect()
@@ -23,7 +82,12 @@ class MusicDatabase:
     
     def connect(self):
         """连接到数据库"""
-        self.conn = sqlite3.connect(self.db_path)
+        self.conn = mysql.connector.connect(
+            host=self.host,
+            user=self.user,
+            password=self.password,
+            database=self.database
+        )
         self.cursor = self.conn.cursor()
     
     def close(self):
@@ -36,49 +100,56 @@ class MusicDatabase:
         # 曲目表
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS tracks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT,
-            artist TEXT,
-            genre TEXT,
-            filepath TEXT UNIQUE,
-            duration REAL,
-            tempo REAL,
-            key TEXT,
-            mode TEXT,
-            created_at TIMESTAMP,
-            features TEXT
-        )
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            title VARCHAR(255),
+            artist VARCHAR(255),
+            genre VARCHAR(100),
+            filepath VARCHAR(512) UNIQUE,
+            duration FLOAT,
+            tempo FLOAT,
+            `key` VARCHAR(10),
+            mode VARCHAR(20),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            features JSON,
+            INDEX idx_title (title),
+            INDEX idx_artist (artist),
+            INDEX idx_genre (genre)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ''')
         
         # 标签表
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS tags (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE
-        )
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            name VARCHAR(100) UNIQUE,
+            INDEX idx_name (name)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ''')
         
         # 曲目-标签关联表
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS track_tags (
-            track_id INTEGER,
-            tag_id INTEGER,
+            track_id BIGINT,
+            tag_id BIGINT,
             PRIMARY KEY (track_id, tag_id),
-            FOREIGN KEY (track_id) REFERENCES tracks(id),
-            FOREIGN KEY (tag_id) REFERENCES tags(id)
-        )
+            FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+            FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+            INDEX idx_track_id (track_id),
+            INDEX idx_tag_id (tag_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ''')
         
         # 乐器表
         self.cursor.execute('''
         CREATE TABLE IF NOT EXISTS instruments (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            track_id INTEGER,
-            name TEXT,
-            program INTEGER,
+            id BIGINT PRIMARY KEY AUTO_INCREMENT,
+            track_id BIGINT,
+            name VARCHAR(100),
+            program INT,
             is_drum BOOLEAN,
-            FOREIGN KEY (track_id) REFERENCES tracks(id)
-        )
+            FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE,
+            INDEX idx_track_id (track_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ''')
         
         self.conn.commit()
@@ -242,22 +313,22 @@ class MusicDatabase:
         params = []
         
         if title is not None:
-            update_fields.append("title = ?")
+            update_fields.append("title = %s")
             params.append(title)
         
         if artist is not None:
-            update_fields.append("artist = ?")
+            update_fields.append("artist = %s")
             params.append(artist)
         
         if genre is not None:
-            update_fields.append("genre = ?")
+            update_fields.append("genre = %s")
             params.append(genre)
         
         if not update_fields:
             return False
         
         # 执行更新
-        query = f"UPDATE tracks SET {', '.join(update_fields)} WHERE id = ?"
+        query = f"UPDATE tracks SET {', '.join(update_fields)} WHERE id = %s"
         params.append(track_id)
         
         self.cursor.execute(query, params)
@@ -276,13 +347,13 @@ class MusicDatabase:
         """
         try:
             # 删除相关的标签关联
-            self.cursor.execute("DELETE FROM track_tags WHERE track_id = ?", (track_id,))
+            self.cursor.execute("DELETE FROM track_tags WHERE track_id = %s", (track_id,))
             
             # 删除相关的乐器信息
-            self.cursor.execute("DELETE FROM instruments WHERE track_id = ?", (track_id,))
+            self.cursor.execute("DELETE FROM instruments WHERE track_id = %s", (track_id,))
             
             # 删除曲目
-            self.cursor.execute("DELETE FROM tracks WHERE id = ?", (track_id,))
+            self.cursor.execute("DELETE FROM tracks WHERE id = %s", (track_id,))
             
             self.conn.commit()
             return self.cursor.rowcount > 0
@@ -318,24 +389,24 @@ class MusicDatabase:
             JOIN track_tags tt ON t.id = tt.track_id
             JOIN tags tg ON tt.tag_id = tg.id
             '''
-            where_clauses.append("tg.name = ?")
+            where_clauses.append("tg.name = %s")
             params.append(tag)
         
         # 添加其他条件
         if query:
-            where_clauses.append("(t.title LIKE ? OR t.artist LIKE ?)")
+            where_clauses.append("(t.title LIKE %s OR t.artist LIKE %s)")
             params.extend([f"%{query}%", f"%{query}%"])
         
         if genre:
-            where_clauses.append("t.genre = ?")
+            where_clauses.append("t.genre = %s")
             params.append(genre)
         
         if key:
-            where_clauses.append("t.key = ?")
+            where_clauses.append("t.key = %s")
             params.append(key)
         
         if tempo_range:
-            where_clauses.append("t.tempo BETWEEN ? AND ?")
+            where_clauses.append("t.tempo BETWEEN %s AND %s")
             params.extend(tempo_range)
         
         # 组合WHERE子句
@@ -528,3 +599,23 @@ class MusicDatabase:
                 print(f"导入曲目 {filepath} 时出错: {e}")
         
         return count 
+
+    def get_total_tracks(self):
+        """获取总曲目数
+        
+        Returns:
+            int: 总曲目数
+        """
+        self.cursor.execute("SELECT COUNT(*) FROM tracks")
+        total_tracks = self.cursor.fetchone()[0]
+        return total_tracks
+
+    def get_all_genres(self):
+        """获取所有曲风
+        
+        Returns:
+            list: 曲风列表
+        """
+        self.cursor.execute("SELECT DISTINCT genre FROM tracks WHERE genre IS NOT NULL")
+        genres = [row[0] for row in self.cursor.fetchall()]
+        return genres

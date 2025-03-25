@@ -11,6 +11,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 给所有音频播放器添加事件监听器
     setupAudioPlayers();
+    
+    // 初始化导航栏活动状态
+    initNavigation();
+    
+    // 初始化统计数字动画
+    initStatsAnimation();
 });
 
 /**
@@ -390,4 +396,52 @@ function showAudioPlayer(container, audioUrl) {
     const audio = player.querySelector('audio');
     audio.src = audioUrl;
     player.style.display = 'block';
-} 
+}
+
+// 初始化导航栏活动状态
+function initNavigation() {
+    const currentPath = window.location.pathname;
+    const navLinks = document.querySelectorAll('nav a');
+    
+    navLinks.forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('active');
+        }
+    });
+}
+
+// 初始化统计数字动画
+function initStatsAnimation() {
+    const statNumbers = document.querySelectorAll('.stat-number');
+    
+    statNumbers.forEach(number => {
+        const target = parseInt(number.textContent);
+        let current = 0;
+        const increment = target / 50; // 50帧完成动画
+        
+        const animate = () => {
+            current += increment;
+            if (current < target) {
+                number.textContent = Math.round(current);
+                requestAnimationFrame(animate);
+            } else {
+                number.textContent = target;
+            }
+        };
+        
+        animate();
+    });
+}
+
+// 添加平滑滚动效果
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+    anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+            target.scrollIntoView({
+                behavior: 'smooth'
+            });
+        }
+    });
+}); 
