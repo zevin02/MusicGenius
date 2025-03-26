@@ -17,7 +17,7 @@
 }
 
 body {
-    font-family: 'Microsoft YaHei', sans-serif;
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
     line-height: 1.6;
     color: #333;
     background-color: #f5f5f5;
@@ -112,35 +112,35 @@ main {
 }
 
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 20px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
 }
 
-.form-group input[type="text"],
 .form-group input[type="number"],
-.form-group input[type="file"],
+.form-group input[type="text"],
 .form-group select {
     width: 100%;
-    padding: 0.75rem;
+    padding: 8px 12px;
     border: 1px solid #ddd;
-    border-radius: var(--border-radius);
-    font-size: 1rem;
+    border-radius: 4px;
+    font-size: 14px;
 }
 
 .form-group input[type="range"] {
     width: 100%;
+    margin-top: 8px;
 }
 
 .range-value {
     display: inline-block;
-    margin-left: 1rem;
-    font-size: 0.9rem;
-    color: var(--secondary-color);
+    margin-left: 10px;
+    color: #666;
 }
 
 /* 按钮样式 */
@@ -185,11 +185,12 @@ main {
     padding: 1rem;
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
+    width: 100%;
+    margin: 20px 0;
 }
 
 .audio-player audio {
     width: 100%;
-    margin-bottom: 1rem;
 }
 
 .play-btn {
@@ -232,6 +233,22 @@ footer {
     
     .stat-number {
         font-size: 1.5em;
+    }
+    
+    .container {
+        padding: 0 10px;
+    }
+    
+    .control-panel {
+        padding: 15px;
+    }
+    
+    .button {
+        width: 100%;
+    }
+    
+    .download-links {
+        flex-direction: column;
     }
 }
 
@@ -491,7 +508,32 @@ footer {
 
 /* 工具提示样式 */
 .tooltip {
-    font-size: 0.875rem;
+    position: relative;
+    display: inline-block;
+    margin-left: 5px;
+    cursor: help;
+}
+
+.tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
 }
 
 /* 开关样式 */
@@ -597,4 +639,73 @@ footer {
     padding: 10px 20px;
     border-radius: 20px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* 控制面板样式 */
+.control-panel {
+    background: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin: 20px 0;
+}
+
+/* 下载链接样式 */
+.download-links {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.download-links .button {
+    text-decoration: none;
+    text-align: center;
+    flex: 1;
+}
+
+/* 生成器类型选择器样式 */
+#generator_type {
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    padding: 10px;
+    width: 100%;
+    border-radius: 4px;
+}
+
+/* 参数调节区域样式 */
+.parameters-section {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 15px;
+    margin-top: 15px;
+}
+
+/* 提示信息样式 */
+.tooltip {
+    position: relative;
+    display: inline-block;
+    margin-left: 5px;
+    cursor: help;
+}
+
+.tooltip .tooltip-text {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
 } 

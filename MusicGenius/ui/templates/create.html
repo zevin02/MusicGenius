@@ -61,7 +61,7 @@
                 <h3>生成旋律</h3>
                 <form id="melodyForm">
                     <div class="form-group">
-                        <label for="style">风格:</label>
+                        <label for="style">音乐风格:</label>
                         <select id="style" name="style" required>
                             {% for style in available_styles %}
                             <option value="{{ style }}">{{ style }}</option>
@@ -70,13 +70,36 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="length">长度(小节):</label>
-                        <input type="number" id="length" name="length" min="1" max="32" value="8" required>
+                        <label for="generator_type">生成器类型:</label>
+                        <select id="generator_type" name="generator_type">
+                            <option value="lstm">LSTM生成器（高质量）</option>
+                            <option value="simple">简单生成器（快速）</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="num_notes">音符数量:</label>
+                        <input type="number" id="num_notes" name="num_notes" min="50" max="1000" value="200" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="seed">种子旋律(可选):</label>
-                        <input type="text" id="seed" name="seed" placeholder="输入音符序列，如: C4 D4 E4">
+                        <label for="temperature">随机性:</label>
+                        <input type="range" id="temperature" name="temperature" min="0" max="100" value="100">
+                        <span class="range-value">1.0</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tempo_bpm">速度(BPM):</label>
+                        <input type="number" id="tempo_bpm" name="tempo_bpm" min="40" max="240" value="120" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="instrument">乐器:</label>
+                        <select id="instrument" name="instrument">
+                            {% for instrument in available_instruments %}
+                            <option value="{{ instrument }}">{{ instrument }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     
                     <button type="submit" class="button">生成旋律</button>
@@ -88,6 +111,10 @@
                         <source id="melodySource" src="" type="audio/wav">
                         您的浏览器不支持音频播放。
                     </audio>
+                    <div class="download-links">
+                        <a id="downloadMidi" href="#" class="button" style="display: none;">下载MIDI文件</a>
+                        <a id="downloadWav" href="#" class="button">下载WAV文件</a>
+                    </div>
                 </div>
             </div>
             

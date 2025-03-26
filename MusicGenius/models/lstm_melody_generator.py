@@ -6,7 +6,7 @@ from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
 import os
 import pickle
 from music21 import note, chord, stream, instrument, tempo
-
+# 这个是高质量，符合音乐规律的旋律，生成midi文件 
 class LSTMMelodyGenerator:
     """基于LSTM的旋律生成模型"""
     
@@ -150,7 +150,11 @@ class LSTMMelodyGenerator:
         # 保存音符映射
         with open(os.path.join(os.path.dirname(save_path), 'note_mappings.pkl'), 'wb') as f:
             pickle.dump((self.note_to_int, self.int_to_note, self.vocab_size), f)
-    
+
+    # 用户操作触发LSTM 的调用：1.生成旋律（用户在网页上选择风格，长度等参数，提交旋律生成请求）
+    # 2. 训练模型，用户上传MIDI 文件，训练新的LSTM 模型
+    # 3.
+    # 这个地方负责生成旋律  
     def generate_melody(self, seed_notes, num_notes=100, temperature=1.0):
         """生成旋律
         

@@ -5,7 +5,7 @@
 import numpy as np
 from typing import Optional, List
 from midiutil import MIDIFile
-
+# 这个也是旋律生成的模块：但是这边生成简单的旋律，
 class MelodyGenerator:
     """旋律生成器类"""
     

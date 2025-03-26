@@ -17,6 +17,80 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 初始化统计数字动画
     initStatsAnimation();
+    
+    // 旋律生成相关功能
+    const melodyForm = document.getElementById('melodyForm');
+    const temperatureInput = document.getElementById('temperature');
+    const temperatureValue = temperatureInput.nextElementSibling;
+    
+    // 更新随机性参数显示
+    temperatureInput.addEventListener('input', function() {
+        temperatureValue.textContent = (this.value / 100).toFixed(1);
+    });
+    
+    // 处理表单提交
+    melodyForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // 显示加载状态
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        submitButton.textContent = '生成中...';
+        submitButton.disabled = true;
+        
+        try {
+            const formData = new FormData(this);
+            
+            // 转换温度值为0-1范围
+            formData.set('temperature', parseFloat(formData.get('temperature')) / 100);
+            
+            const response = await fetch('/generate_melody', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // 更新音频源
+                const melodyPlayer = document.getElementById('melodyPlayer');
+                const audioElement = melodyPlayer.querySelector('audio');
+                const audioSource = audioElement.querySelector('source');
+                
+                // 设置音频文件路径
+                audioSource.src = '/output/' + data.midi_file;
+                audioElement.load();  // 重新加载音频
+                
+                // 更新下载链接
+                const downloadMidi = document.getElementById('downloadMidi');
+                const downloadWav = document.getElementById('downloadWav');
+                
+                // 如果是LSTM生成器，显示MIDI下载链接
+                if (formData.get('generator_type') === 'lstm') {
+                    downloadMidi.href = '/output/' + data.midi_file.replace('.wav', '.mid');
+                    downloadMidi.style.display = 'inline-block';
+                } else {
+                    downloadMidi.style.display = 'none';
+                }
+                
+                downloadWav.href = '/output/' + data.midi_file;
+                
+                // 显示播放器
+                melodyPlayer.style.display = 'block';
+                
+                // 显示成功消息
+                showMessage('success', '旋律生成成功！');
+            } else {
+                showMessage('error', '生成旋律失败：' + data.message);
+            }
+        } catch (error) {
+            showMessage('error', '发生错误：' + error.message);
+        } finally {
+            // 恢复按钮状态
+            submitButton.textContent = originalText;
+            submitButton.disabled = false;
+        }
+    });
 });
 
 /**
@@ -442,6 +516,20 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             target.scrollIntoView({
                 behavior: 'smooth'
             });
+        }
+    });
+});
+
+// 添加工具提示
+document.querySelectorAll('.tooltip').forEach(tooltip => {
+    tooltip.addEventListener('mouseover', function() {
+        const tooltipText = this.querySelector('.tooltip-text');
+        const rect = this.getBoundingClientRect();
+        
+        // 确保提示框不会超出视窗
+        if (rect.top < tooltipText.offsetHeight + 10) {
+            tooltipText.style.bottom = 'auto';
+            tooltipText.style.top = '125%';
         }
     });
 }); 

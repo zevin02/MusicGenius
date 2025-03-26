@@ -171,18 +171,21 @@ class MusicGeniusApp:
             """生成旋律API"""
             try:
                 # 获取参数
-                num_notes = int(request.form.get('num_notes', 200))
-                temperature = float(request.form.get('temperature', 1.0))
-                tempo_bpm = int(request.form.get('tempo_bpm', 120))
-                instrument_name = request.form.get('instrument', 'Piano')
-                
-                #TODO 
+                num_notes = int(request.form.get('num_notes', 200))  # 音符数量
+                temperature = float(request.form.get('temperature', 1.0))  # 随机性参数
+                tempo_bpm = int(request.form.get('tempo_bpm', 120))  # 节拍数
+                instrument_name = request.form.get('instrument', 'Piano')  # 乐器
+                generator_type = request.form.get('generator_type', 'lstm')  # 生成器类型：'simple' 或 'lstm'
+                style = request.form.get('style', '古典')  # 音乐风格
+      
                 # 生成MIDI文件
-                output_path = self.music_creator.generate_midi_file(
+                output_path = self.music_creator.generate_melody(
+                    style=style,
                     num_notes=num_notes,
                     temperature=temperature,
                     tempo_bpm=tempo_bpm,
-                    instrument_name=instrument_name
+                    instrument_name=instrument_name,
+                    generator_type=generator_type
                 )
                 
                 # 获取相对路径

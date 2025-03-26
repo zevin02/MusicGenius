@@ -65,6 +65,11 @@ class MusicCreator:
         
         # 创建必要的目录
         os.makedirs('uploads', exist_ok=True)
+        
+        # 初始化 LSTM 旋律生成器
+        self.lstm_generator = LSTMMelodyGenerator()
+        # 初始化简单旋律生成器
+        self.simple_generator = MelodyGenerator()
     
     def _load_available_models(self):
         """加载可用的预训练模型"""
@@ -133,26 +138,83 @@ class MusicCreator:
         
         return save_path
     
-    def generate_melody(self, style: str, length: int = 8, seed: Optional[str] = None) -> str:
+    def generate_melody(self, style: str, num_notes: int = 200, temperature: float = 1.0,
+                       tempo_bpm: int = 120, instrument_name: str = 'Piano',
+                       generator_type: str = 'lstm') -> str:
         """生成旋律
         
         Args:
             style: 音乐风格
-            length: 旋律长度（小节数）
-            seed: 随机种子
+            num_notes: 音符数量
+            temperature: 随机性参数 (0.0-1.0)
+            tempo_bpm: 速度（每分钟节拍数）
+            instrument_name: 乐器名称
+            generator_type: 生成器类型 ('simple' 或 'lstm')
             
         Returns:
             str: 生成的旋律文件路径
         """
-        # 生成旋律
-        melody = self.melody_generator.generate(style, length, seed)
+        # 创建输出目录
+        output_dir = os.path.join(self.output_dir, 'melodies')
+        os.makedirs(output_dir, exist_ok=True)
         
-        # 保存旋律
+        # 生成文件名
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        output_file = f'output/melody_{timestamp}.wav'
-        sf.write(output_file, melody, 44100)
+        midi_file = os.path.join(output_dir, f'melody_{style}_{generator_type}_{timestamp}.mid')
+        wav_file = os.path.join(output_dir, f'melody_{style}_{generator_type}_{timestamp}.wav')
         
-        return output_file
+        if generator_type == 'lstm':
+            # 使用 LSTM 生成器
+            seed_notes = self._get_style_seed_notes(style)
+            melody = self.lstm_generator.generate_melody(
+                seed_notes=seed_notes,
+                num_notes=num_notes,
+                temperature=temperature
+            )
+            self.lstm_generator.generate_midi(
+                output_path=midi_file,
+                melody=melody,
+                tempo_bpm=tempo_bpm,
+                instrument_name=instrument_name
+            )
+        else:
+            # 使用简单生成器，直接获取音频数据
+            audio_data = self.simple_generator.generate(
+                style=style,
+                length=num_notes // 8,  # 将音符数量转换为小节数
+                seed=None
+            )
+            
+            # 保存音频数据为WAV文件
+            sf.write(wav_file, audio_data, 44100)
+            return wav_file
+        
+        # 如果是LSTM生成的MIDI，转换为WAV
+        if generator_type == 'lstm':
+            self.midi_to_wav(midi_file, wav_file)
+        
+        return wav_file
+    
+    def _get_style_seed_notes(self, style: str) -> List[str]:
+        """根据风格获取种子音符序列
+        
+        Args:
+            style: 音乐风格
+            
+        Returns:
+            List[str]: 种子音符序列
+        """
+        # 为不同风格定义特征性的种子音符序列
+        style_seeds = {
+            '古典': ['C4', 'E4', 'G4', 'C5'],  # C大调和弦
+            '爵士': ['C4', 'E4', 'G4', 'Bb4'],  # C7和弦
+            '流行': ['C4', 'F4', 'G4', 'Am4'],  # 流行进行
+            '民谣': ['C4', 'D4', 'E4', 'G4'],   # 民谣音阶
+            '电子': ['C4', 'D4', 'F4', 'G4'],   # 电子音阶
+            '蓝调': ['C4', 'Eb4', 'F4', 'G4']   # 蓝调音阶
+        }
+        
+        return style_seeds.get(style, ['C4', 'E4', 'G4', 'C5'])  # 默认使用C大调和弦
     
     def midi_to_wav(self, midi_file, wav_file):
         """将MIDI文件转换为WAV格式
