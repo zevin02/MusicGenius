@@ -20,77 +20,87 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 旋律生成相关功能
     const melodyForm = document.getElementById('melodyForm');
-    const temperatureInput = document.getElementById('temperature');
-    const temperatureValue = temperatureInput.nextElementSibling;
-    
-    // 更新随机性参数显示
-    temperatureInput.addEventListener('input', function() {
-        temperatureValue.textContent = (this.value / 100).toFixed(1);
-    });
-    
-    // 处理表单提交
-    melodyForm.addEventListener('submit', async function(e) {
-        e.preventDefault();
+    if (melodyForm) {
+        const temperatureInput = document.getElementById('temperature');
+        const temperatureValue = temperatureInput.nextElementSibling;
         
-        // 显示加载状态
-        const submitButton = this.querySelector('button[type="submit"]');
-        const originalText = submitButton.textContent;
-        submitButton.textContent = '生成中...';
-        submitButton.disabled = true;
+        // 更新随机性参数显示
+        temperatureInput.addEventListener('input', function() {
+            temperatureValue.textContent = (this.value / 100).toFixed(1);
+        });
         
-        try {
+        // 处理表单提交
+        melodyForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
             const formData = new FormData(this);
             
-            // 转换温度值为0-1范围
-            formData.set('temperature', parseFloat(formData.get('temperature')) / 100);
-            
-            const response = await fetch('/generate_melody', {
-                method: 'POST',
-                body: formData
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                // 更新音频源
-                const melodyPlayer = document.getElementById('melodyPlayer');
-                const audioElement = melodyPlayer.querySelector('audio');
-                const audioSource = audioElement.querySelector('source');
+            try {
+                const response = await fetch('/generate_melody', {
+                    method: 'POST',
+                    body: formData
+                });
                 
-                // 设置音频文件路径
-                audioSource.src = '/output/' + data.midi_file;
-                audioElement.load();  // 重新加载音频
+                const data = await response.json();
                 
-                // 更新下载链接
-                const downloadMidi = document.getElementById('downloadMidi');
-                const downloadWav = document.getElementById('downloadWav');
-                
-                // 如果是LSTM生成器，显示MIDI下载链接
-                if (formData.get('generator_type') === 'lstm') {
-                    downloadMidi.href = '/output/' + data.midi_file.replace('.wav', '.mid');
-                    downloadMidi.style.display = 'inline-block';
+                if (data.success) {
+                    // 获取音频元素
+                    const audioPlayer = document.querySelector('audio.audio-player');
+                    const audioSource = document.getElementById('melodySource');
+                    
+                    // 构建文件URL
+                    const audioUrl = '/output/' + data.midi_file;
+                    console.log('音频URL:', audioUrl);
+                    
+                    // 更新音频源
+                    audioSource.src = audioUrl;
+                    audioPlayer.load();
+                    
+                    // 显示播放器和播放按钮
+                    document.getElementById('melodyPlayer').style.display = 'block';
+                    const playButton = document.getElementById('playButton');
+                    playButton.style.display = 'inline-block';
+                    
+                    // 更新下载链接
+                    const downloadWav = document.getElementById('downloadWav');
+                    if (downloadWav) {
+                        downloadWav.href = audioUrl;
+                        downloadWav.download = data.midi_file; // 设置下载文件名
+                        downloadWav.style.display = 'inline-block';
+                        
+                        // 为下载按钮添加点击事件
+                        downloadWav.onclick = async function(e) {
+                            e.preventDefault();
+                            try {
+                                const response = await fetch(audioUrl);
+                                if (response.ok) {
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = data.midi_file;
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                } else {
+                                    throw new Error('下载失败');
+                                }
+                            } catch (error) {
+                                console.error('下载错误:', error);
+                                alert('下载文件失败，请稍后重试');
+                            }
+                        };
+                    }
                 } else {
-                    downloadMidi.style.display = 'none';
+                    alert('生成旋律失败：' + data.message);
                 }
-                
-                downloadWav.href = '/output/' + data.midi_file;
-                
-                // 显示播放器
-                melodyPlayer.style.display = 'block';
-                
-                // 显示成功消息
-                showMessage('success', '旋律生成成功！');
-            } else {
-                showMessage('error', '生成旋律失败：' + data.message);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('发生错误：' + error.message);
             }
-        } catch (error) {
-            showMessage('error', '发生错误：' + error.message);
-        } finally {
-            // 恢复按钮状态
-            submitButton.textContent = originalText;
-            submitButton.disabled = false;
-        }
-    });
+        });
+    }
 });
 
 /**
@@ -119,7 +129,7 @@ function registerFormListeners() {
                 
                 const data = await response.json();
                 showMessage(container, '旋律生成成功！');
-                showAudioPlayer(container, data.audio_url);
+                showAudioPlayer(container, data.midi_file);
                 
             } catch (error) {
                 showMessage(container, error.message, true);
@@ -149,7 +159,7 @@ function registerFormListeners() {
                 
                 const data = await response.json();
                 showMessage(container, '风格转换成功！');
-                showAudioPlayer(container, data.audio_url);
+                showAudioPlayer(container, data.midi_file);
                 
             } catch (error) {
                 showMessage(container, error.message, true);
@@ -179,7 +189,7 @@ function registerFormListeners() {
                 
                 const data = await response.json();
                 showMessage(container, '伴奏生成成功！');
-                showAudioPlayer(container, data.audio_url);
+                showAudioPlayer(container, data.midi_file);
                 
             } catch (error) {
                 showMessage(container, error.message, true);

@@ -60,81 +60,85 @@ function setupMelodyGeneration() {
     const melodyForm = document.getElementById('melodyGenerationForm');
     
     if (!melodyForm) return;
-    
-    melodyForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        // 获取表单数据
-        const formData = new FormData(melodyForm);
-        
+
+    // 确保事件处理程序只绑定一次
+    melodyForm.removeEventListener('submit', handleSubmit); // 移除之前的事件处理程序
+    melodyForm.addEventListener('submit', handleSubmit); // 绑定新的事件处理程序
+}
+
+function handleSubmit(e) {
+    e.preventDefault();  // 阻止默认提交行为
+
+    // 获取表单数据
+    const formData = new FormData(this); // 使用 this 获取表单数据
+
+    // 更新UI状态
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.innerHTML;
+    submitButton.disabled = true;  // 禁用按钮
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>生成中...';
+
+    // 显示进度条
+    const progressContainer = document.getElementById('melodyProgressContainer');
+    if (progressContainer) {
+        progressContainer.classList.remove('d-none');
+    }
+
+    // 发送API请求
+    fetch('/generate_melody', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
         // 更新UI状态
-        const submitButton = melodyForm.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
-        submitButton.disabled = true;
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>生成中...';
-        
-        // 显示进度条
-        const progressContainer = document.getElementById('melodyProgressContainer');
+        submitButton.disabled = false;  // 请求完成后启用按钮
+        submitButton.innerHTML = originalText;
+
+        // 隐藏进度条
         if (progressContainer) {
-            progressContainer.classList.remove('d-none');
+            progressContainer.classList.add('d-none');
         }
-        
-        // 发送API请求
-        fetch('/generate_melody', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            // 更新UI状态
-            submitButton.disabled = false;
-            submitButton.innerHTML = originalText;
-            
-            // 隐藏进度条
-            if (progressContainer) {
-                progressContainer.classList.add('d-none');
+
+        if (data.success) {
+            // 显示结果区域
+            const resultSection = document.getElementById('melodyResultSection');
+            if (resultSection) {
+                resultSection.classList.remove('d-none');
             }
-            
-            if (data.success) {
-                // 显示结果区域
-                const resultSection = document.getElementById('melodyResultSection');
-                if (resultSection) {
-                    resultSection.classList.remove('d-none');
-                }
-                
-                // 更新下载链接
-                const downloadLink = document.getElementById('melodyDownloadLink');
-                if (downloadLink) {
-                    downloadLink.href = data.output_file;
-                }
-                
-                // 设置播放按钮
-                setupMidiPlayer('melodyPlayButton', data.output_file);
-                
-                // 初始化MIDI可视化
-                initializeMidiVisualizer('melodyVisualizer', data.output_file);
-                
-                // 设置保存到库按钮
-                setupSaveToLibrary('melodySaveToLibraryButton', data.output_file);
-                
-                // 显示成功消息
-                showToast('旋律生成成功', '您的旋律已生成，您可以播放、下载或保存到音乐库', 'success');
-            } else {
-                // 显示错误消息
-                showToast('生成失败', data.error || '生成旋律时发生错误', 'error');
+
+            // 更新下载链接
+            const downloadLink = document.getElementById('melodyDownloadLink');
+            if (downloadLink) {
+                downloadLink.href = data.output_file;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            submitButton.disabled = false;
-            submitButton.innerHTML = originalText;
-            
-            if (progressContainer) {
-                progressContainer.classList.add('d-none');
-            }
-            
-            showToast('错误', '请求处理失败，请稍后再试', 'error');
-        });
+
+            // 设置播放按钮
+            setupMidiPlayer('melodyPlayButton', data.output_file);
+
+            // 初始化MIDI可视化
+            initializeMidiVisualizer('melodyVisualizer', data.output_file);
+
+            // 设置保存到库按钮
+            setupSaveToLibrary('melodySaveToLibraryButton', data.output_file);
+
+            // 显示成功消息
+            showToast('旋律生成成功', '您的旋律已生成，您可以播放、下载或保存到音乐库', 'success');
+        } else {
+            // 显示错误消息
+            showToast('生成失败', data.error || '生成旋律时发生错误', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        submitButton.disabled = false;  // 请求失败后启用按钮
+        submitButton.innerHTML = originalText;
+
+        if (progressContainer) {
+            progressContainer.classList.add('d-none');
+        }
+
+        showToast('错误', '请求处理失败，请稍后再试', 'error');
     });
 }
 

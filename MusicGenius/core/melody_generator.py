@@ -50,10 +50,11 @@ class MelodyGenerator:
         # 获取音阶和节奏模式
         scale = self.scales.get(style, self.scales['古典'])
         rhythm = self.rhythm_patterns.get(style, self.rhythm_patterns['古典'])
+        print('start _generate_midi_notes')
         
         # 生成MIDI音符
         midi_notes = self._generate_midi_notes(scale, rhythm, length)
-        
+        print('start _midi_to_audio')
         # 将MIDI转换为音频
         audio = self._midi_to_audio(midi_notes)
         
@@ -109,13 +110,11 @@ class MelodyGenerator:
         midi_filename = 'temp.mid'
         with open(midi_filename, 'wb') as f:
             midi.writeFile(f)
-        
+
         # 将MIDI转换为音频
         audio = self._synthesize_midi(midi_filename)
-        
         # 删除临时文件
-        import os
-        os.remove(midi_filename)
+
         
         return audio
     
@@ -131,10 +130,14 @@ class MelodyGenerator:
         # 使用FluidSynth合成MIDI
         import subprocess
         import soundfile as sf
-        
+        # 在这个地方挂掉了
         # 生成临时WAV文件
         wav_file = 'temp.wav'
-        subprocess.run(['fluidsynth', '-ni', 'soundfont.sf2', midi_file, '-F', wav_file, '-r', str(self.sample_rate)])
+        # 创建一个空的 WAV 文件
+        # 这里我们创建一个长度为0的音频文件
+        sf.write(wav_file, np.zeros((0,)), 44100)  # 44100 是采样率
+        soundfont_path = '/usr/share/sounds/sf2/FluidR3_GM.sf2'
+        result = subprocess.run(['fluidsynth', '-ni', soundfont_path, midi_file, '-F', wav_file, '-r', str(self.sample_rate)])
         
         # 读取音频数据
         audio, _ = sf.read(wav_file)

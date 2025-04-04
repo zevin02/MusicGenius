@@ -111,9 +111,10 @@
                         <source id="melodySource" src="" type="audio/wav">
                         您的浏览器不支持音频播放。
                     </audio>
+                    <button id="playButton" class="button" style="display: none;">播放音频</button>
                     <div class="download-links">
                         <a id="downloadMidi" href="#" class="button" style="display: none;">下载MIDI文件</a>
-                        <a id="downloadWav" href="#" class="button">下载WAV文件</a>
+                        <a id="downloadWav" href="#" class="button" download>下载WAV文件</a>
                     </div>
                 </div>
             </div>
@@ -208,18 +209,56 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    // 更新音频源并显示播放器
+                    // 获取音频元素
+                    const audioPlayer = document.querySelector('audio.audio-player');
                     const audioSource = document.getElementById('melodySource');
-                    audioSource.src = '/output/' + data.audio_url;
                     
-                    const audioPlayer = audioSource.parentElement;
-                    audioPlayer.load();  // 重新加载音频
+                    // 构建文件URL（使用绝对路径）
+                    const audioUrl = '/output/' + data.midi_file;
+                    console.log('Audio URL:', audioUrl);
                     
+                    // 更新音频源
+                    audioSource.src = audioUrl;
+                    audioPlayer.load();
+                    
+                    // 显示播放器和播放按钮
                     document.getElementById('melodyPlayer').style.display = 'block';
+                    const playButton = document.getElementById('playButton');
+                    playButton.style.display = 'inline-block';
+                    
+                    // 更新下载链接
+                    const downloadWav = document.getElementById('downloadWav');
+                    if (downloadWav) {
+                        // 使用 fetch API 处理下载
+                        downloadWav.onclick = async function(e) {
+                            e.preventDefault();
+                            try {
+                                const response = await fetch(audioUrl);
+                                if (response.ok) {
+                                    const blob = await response.blob();
+                                    const url = window.URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = data.midi_file.split('/').pop(); // 获取文件名
+                                    document.body.appendChild(a);
+                                    a.click();
+                                    window.URL.revokeObjectURL(url);
+                                    document.body.removeChild(a);
+                                } else {
+                                    throw new Error(`下载失败: ${response.status}`);
+                                }
+                            } catch (error) {
+                                console.error('下载错误:', error);
+                                alert('下载文件失败，请稍后重试');
+                            }
+                        };
+                        downloadWav.style.display = 'inline-block';
+                    }
                 } else {
                     alert('生成旋律失败：' + data.message);
                 }
             } catch (error) {
+                console.error('Error:', error);
                 alert('发生错误：' + error.message);
             }
         };

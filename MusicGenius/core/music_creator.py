@@ -18,7 +18,6 @@ import soundfile as sf
 from .melody_generator import MelodyGenerator
 from .style_transfer import StyleTransfer
 from .accompaniment_generator import AccompanimentGenerator
-from .database import Database
 from music21 import instrument
 
 class MusicCreator:
@@ -58,7 +57,6 @@ class MusicCreator:
         }
         
         # 初始化数据库
-        self.db = Database()
         
         # 初始化各个组件
         self.accompaniment_generator = AccompanimentGenerator()
@@ -155,14 +153,14 @@ class MusicCreator:
             str: 生成的旋律文件路径
         """
         # 创建输出目录
-        output_dir = os.path.join(self.output_dir, 'melodies')
-        os.makedirs(output_dir, exist_ok=True)
+        output_dir = self.output_dir
+
         
         # 生成文件名
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         midi_file = os.path.join(output_dir, f'melody_{style}_{generator_type}_{timestamp}.mid')
         wav_file = os.path.join(output_dir, f'melody_{style}_{generator_type}_{timestamp}.wav')
-        
+        print('wav_file'+wav_file);
         if generator_type == 'lstm':
             # 使用 LSTM 生成器
             seed_notes = self._get_style_seed_notes(style)
@@ -184,15 +182,18 @@ class MusicCreator:
                 length=num_notes // 8,  # 将音符数量转换为小节数
                 seed=None
             )
-            
+            print('start sf.write')
             # 保存音频数据为WAV文件
             sf.write(wav_file, audio_data, 44100)
+            print('finish sf.write')
             return wav_file
         
         # 如果是LSTM生成的MIDI，转换为WAV
         if generator_type == 'lstm':
             self.midi_to_wav(midi_file, wav_file)
         
+        
+
         return wav_file
     
     def _get_style_seed_notes(self, style: str) -> List[str]:

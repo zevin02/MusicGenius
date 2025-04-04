@@ -46,6 +46,7 @@ class MusicGeniusApp:
             port (int): 端口号
             debug (bool): 是否开启调试模式
         """
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.model_dir = model_dir
         self.output_dir = output_dir
         self.upload_folder = upload_folder
@@ -189,8 +190,10 @@ class MusicGeniusApp:
                 )
                 
                 # 获取相对路径
-                relative_path = os.path.relpath(output_path, self.output_dir)
-                
+                relative_path = os.path.relpath(output_path, self.output_dir)# 获取了文件名
+                midi_filename='temp.mid'
+                self.music_db.add_track(filepath=midi_filename,title=relative_path,genre=style)
+                os.remove(midi_filename)
                 return jsonify({
                     'success': True,
                     'midi_file': relative_path,
@@ -245,7 +248,6 @@ class MusicGeniusApp:
                 
                 # 获取相对路径
                 relative_path = os.path.relpath(output_path, self.output_dir)
-                
                 return jsonify({
                     'success': True,
                     'midi_file': relative_path,
@@ -450,8 +452,38 @@ class MusicGeniusApp:
         @self.app.route('/output/<path:filename>')
         def download_file(filename):
             """下载输出文件"""
-            return send_from_directory(self.output_dir, filename, as_attachment=True)
-        
+            try:
+                print(f"Attempting to download file: {filename}")
+                print(f"Output directory: {self.output_dir}")
+                print(f"Full path: {os.path.join(self.output_dir, filename)}")
+                
+                # 检查文件是否存在
+                full_path1 = os.path.join(self.output_dir, filename)
+                full_path = os.path.join(self.base_dir, full_path1)
+                print(full_path)
+                if not os.path.exists(full_path):
+                    print(f"File not found: {full_path}")
+                    return jsonify({
+                        'success': False,
+                        'message': f'File not found: {filename}'
+                    }), 404
+                    
+                # 如果文件存在，返回文件
+                dire = os.path.join(self.base_dir, self.output_dir)
+                #!!! 必须要用绝对路径
+                return send_from_directory(
+                    directory=dire,
+                    path=filename,
+                    as_attachment=True,
+                    mimetype='audio/wav'
+                )
+            except Exception as e:
+                print(f"Error in download_file: {str(e)}")
+                return jsonify({
+                    'success': False,
+                    'message': f'Error downloading file: {str(e)}'
+                }), 500
+            
         @self.app.route('/add_to_library', methods=['POST'])
         def add_to_library():
             """添加到音乐库API"""
@@ -694,6 +726,8 @@ class MusicGeniusApp:
             Flask: Flask应用对象
         """
         return self.app
+
+
 
 def main():
     """主函数，启动Web应用程序"""

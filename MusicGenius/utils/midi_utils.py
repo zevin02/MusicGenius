@@ -343,3 +343,36 @@ def extract_midi_features(midi_path):
         'num_instruments': len(midi_data.instruments),
         'num_notes': sum(len(instrument.notes) for instrument in midi_data.instruments)
     }
+
+
+def wav_to_midi(wav_path, midi_path):
+    """将WAV文件转换为MIDI文件"""
+    # 加载音频文件
+    y, sr = librosa.load(wav_path)
+
+    # 使用音高检测算法（如音高跟踪）来提取音符
+    pitches, magnitudes = librosa.piptrack(y=y, sr=sr)
+
+    # 创建一个新的MIDI对象
+    midi_data = pretty_midi.PrettyMIDI()
+
+    # 创建一个乐器
+    instrument = pretty_midi.Instrument(program=0)  # 0表示钢琴
+
+    # 遍历音高数据，创建音符
+    for t in range(pitches.shape[1]):
+        for p in range(pitches.shape[0]):
+            if pitches[p, t] > 0:  # 检查音高是否有效
+                note = pretty_midi.Note(
+                    velocity=100,  # 音量
+                    pitch=int(pitches[p, t]),  # 音高
+                    start=t * (1.0 / sr),  # 开始时间
+                    end=(t + 1) * (1.0 / sr)  # 结束时间
+                )
+                instrument.notes.append(note)
+
+    # 将乐器添加到MIDI数据中
+    midi_data.instruments.append(instrument)
+
+    # 保存MIDI文件
+    midi_data.write(midi_path)

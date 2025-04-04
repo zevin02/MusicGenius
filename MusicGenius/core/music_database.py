@@ -10,8 +10,8 @@ CREATE TABLE tracks (
     artist VARCHAR(255),
     genre VARCHAR(100),
     filepath VARCHAR(512) UNIQUE,
-    duration FLOAT,
-    tempo FLOAT,
+    duration INT,
+    tempo INT,
     `key` VARCHAR(10),
     mode VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -102,17 +102,12 @@ class MusicDatabase:
         CREATE TABLE IF NOT EXISTS tracks (
             id BIGINT PRIMARY KEY AUTO_INCREMENT,
             title VARCHAR(255),
-            artist VARCHAR(255),
             genre VARCHAR(100),
             filepath VARCHAR(512) UNIQUE,
-            duration FLOAT,
-            tempo FLOAT,
-            `key` VARCHAR(10),
-            mode VARCHAR(20),
+            duration INT,
+            tempo INT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            features JSON,
             INDEX idx_title (title),
-            INDEX idx_artist (artist),
             INDEX idx_genre (genre)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ''')
@@ -174,46 +169,46 @@ class MusicDatabase:
         
         # 如果标题为空，使用文件名
         if title is None:
-            title = os.path.splitext(os.path.basename(filepath))[0]
+            title = os.path.splitext(os.path.basename(filepath))[0] # 再去除调后缀
         
         # 提取MIDI文件信息
         try:
             tempo = midi_utils.get_tempo(filepath)
+            tempo = int(round(tempo))  # 四舍五入并转换为整数
+
             key, mode = midi_utils.extract_key(filepath)
             duration = midi_utils.extract_midi_features(filepath)['duration']
             
-            # 提取特征
-            features = {}
-            if extract_features:
-                features = midi_utils.extract_midi_features(filepath)
+            # 将duration转换为整数（以秒为单位）
+            duration = int(round(duration))  # 四舍五入并转换为整数
             
-            # 将特征转换为JSON字符串
-            features_json = json.dumps(features)
-            
-            # 添加曲目
+            # 打印调试信息
+            print(f"Inserting track: {title}, genre: {genre}, filepath: {filepath}, duration: {duration}, tempo: {tempo}, created_at: {datetime.now()}")
+
+            # 执行插入
             self.cursor.execute('''
-            INSERT INTO tracks (title, artist, genre, filepath, duration, tempo, key, mode, created_at, features)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (title, artist, genre, filepath, duration, tempo, key, mode, datetime.now(), features_json))
+            INSERT INTO tracks (title, genre, filepath, duration, tempo, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ''', (title, genre, title, duration, tempo, datetime.now()))
             
             track_id = self.cursor.lastrowid
             
-            # 添加标签
-            if tags:
-                for tag in tags:
-                    tag_id = self.add_tag(tag)
-                    self.cursor.execute('''
-                    INSERT OR IGNORE INTO track_tags (track_id, tag_id)
-                    VALUES (?, ?)
-                    ''', (track_id, tag_id))
+            # # 添加标签
+            # if tags:
+            #     for tag in tags:
+            #         tag_id = self.add_tag(tag)
+            #         self.cursor.execute('''
+            #         INSERT OR IGNORE INTO track_tags (track_id, tag_id)
+            #         VALUES (?, ?)
+            #         ''', (track_id, tag_id))
             
-            # 添加乐器信息
-            instruments = midi_utils.get_instruments(filepath)
-            for inst in instruments:
-                self.cursor.execute('''
-                INSERT INTO instruments (track_id, name, program, is_drum)
-                VALUES (?, ?, ?, ?)
-                ''', (track_id, inst['name'], inst['program'], inst['is_drum']))
+            # # 添加乐器信息
+            # instruments = midi_utils.get_instruments(filepath)
+            # for inst in instruments:
+            #     self.cursor.execute('''
+            #     INSERT INTO instruments (track_id, name, program, is_drum)
+            #     VALUES (?, ?, ?, ?)
+            #     ''', (track_id, inst['name'], inst['program'], inst['is_drum']))
             
             self.conn.commit()
             return track_id
