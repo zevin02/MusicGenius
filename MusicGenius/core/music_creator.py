@@ -176,7 +176,7 @@ class MusicCreator:
                 instrument_name=instrument_name
             )
         else:
-            # 使用简单生成器，直接获取音频数据
+            # 使用简单生成器，直接获取音频数据,这个地方支持用不同的乐器
             audio_data = self.simple_generator.generate(
                 style=style,
                 length=num_notes // 8,  # 将音符数量转换为小节数

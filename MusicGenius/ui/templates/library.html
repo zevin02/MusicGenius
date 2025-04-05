@@ -29,6 +29,10 @@
             border-radius: 15px;
             font-size: 0.9em;
         }
+        .fade-out {
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
     </style>
 </head>
 <body>
@@ -70,13 +74,51 @@
         </div>
         
         <!-- 作品列表 -->
-        <div id="compositionsList">
-            <!-- 作品卡片将通过JavaScript动态添加 -->
+        <div id="compositionsList" class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">加载中...</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- 删除确认模态框 -->
+    <div class="modal fade" id="deleteTrackModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>确定要删除 "<span id="deleteTrackTitle"></span>" 吗？此操作不可撤销。</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">删除</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 容器 -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // 页面加载时自动请求数据
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCompositions();
+        });
+        
         // 加载作品列表
         async function loadCompositions() {
             try {
@@ -86,55 +128,118 @@
                 const compositionsList = document.getElementById('compositionsList');
                 compositionsList.innerHTML = '';
                 
-                compositions.forEach(composition => {
-                    const card = document.createElement('div');
-                    card.className = 'composition-card';
-                    
-                    card.innerHTML = `
-                        <div class="row">
-                            <div class="col-md-8">
-                                <h5>${composition.title}</h5>
-                                <p class="text-muted">${composition.description || '无描述'}</p>
-                                <div class="mb-2">
-                                    <small class="text-muted">创建时间：${new Date(composition.created_at).toLocaleString()}</small>
-                                </div>
-                                <div>
-                                    ${composition.effects.map(effect => `
-                                        <span class="effect-tag">${effect}</span>
-                                    `).join('')}
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="d-grid gap-2">
-                                    <button class="btn btn-primary" onclick="playComposition(${composition.id})">
-                                        <i class="bi bi-play-fill"></i> 播放
-                                    </button>
-                                    <button class="btn btn-danger" onclick="deleteComposition(${composition.id})">
-                                        <i class="bi bi-trash"></i> 删除
-                                    </button>
-                                </div>
+                // 添加标题卡片
+                const titleCard = document.createElement('div');
+                titleCard.className = 'col-12 mb-4';
+                titleCard.innerHTML = `
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">音乐库 (${compositions.length})</h5>
+                        </div>
+                    </div>
+                `;
+                compositionsList.appendChild(titleCard);
+                
+                if (compositions.length === 0) {
+                    const emptyCard = document.createElement('div');
+                    emptyCard.className = 'col-12';
+                    emptyCard.innerHTML = `
+                        <div class="card">
+                            <div class="card-body text-center py-5">
+                                <i class="bi bi-music-note-beamed fs-1 text-muted mb-3"></i>
+                                <h5>音乐库中还没有曲目</h5>
+                                <p class="text-muted">前往创作页面创建一些音乐，或导入已有的MIDI文件。</p>
+                                <a href="/create" class="btn btn-primary mt-2">开始创作</a>
                             </div>
                         </div>
-                        <div id="player${composition.id}" style="display: none;">
-                            <audio class="audio-player" controls>
-                                <source src="${composition.accompaniment_file}" type="audio/wav">
-                            </audio>
+                    `;
+                    compositionsList.appendChild(emptyCard);
+                    return;
+                }
+                
+                compositions.forEach(composition => {
+                    const card = document.createElement('div');
+                    card.className = 'col-md-6 col-lg-4 mb-4';
+                    card.dataset.id = composition.id;
+                    
+                    card.innerHTML = `
+                        <div class="composition-card">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <h5 class="mb-0">${composition.title}</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a class="dropdown-item" href="#" onclick="playComposition(${composition.id})">
+                                            <i class="bi bi-play-fill"></i> 播放
+                                        </a></li>
+                                        <li><a class="dropdown-item" href="${composition.accompaniment_file}" download>
+                                            <i class="bi bi-download"></i> 下载
+                                        </a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteComposition(${composition.id}, '${composition.title}')">
+                                            <i class="bi bi-trash"></i> 删除
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <p class="text-muted">${composition.description || '无描述'}</p>
+                            <div class="mb-2">
+                                <small class="text-muted">创建时间：${new Date(composition.created_at).toLocaleString()}</small>
+                            </div>
+                            <div>
+                                ${composition.effects && composition.effects.length > 0 ? composition.effects.map(effect => `
+                                    <span class="effect-tag">${effect}</span>
+                                `).join('') : '<span class="text-muted small">无标签</span>'}
+                            </div>
+                            <div class="mt-3">
+                                <button class="btn btn-sm btn-primary w-100" onclick="playComposition(${composition.id})">
+                                    <i class="bi bi-play-fill"></i> 播放
+                                </button>
+                            </div>
+                            <div id="player${composition.id}" style="display: none;" class="mt-2">
+                                <audio class="audio-player w-100" controls>
+                                    <source src="${composition.accompaniment_file}" type="audio/wav">
+                                </audio>
+                            </div>
                         </div>
                     `;
                     
                     compositionsList.appendChild(card);
                 });
             } catch (error) {
-                alert('加载作品列表失败');
+                console.error('加载作品列表失败', error);
+                
+                const compositionsList = document.getElementById('compositionsList');
+                compositionsList.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            加载作品列表失败：${error.message || '未知错误'}
+                        </div>
+                    </div>
+                `;
             }
         }
 
         // 播放作品
         function playComposition(id) {
             const playerDiv = document.getElementById(`player${id}`);
+            if (!playerDiv) return;
+            
             const player = playerDiv.querySelector('audio');
             
             if (playerDiv.style.display === 'none') {
+                // 关闭其他播放器
+                document.querySelectorAll('[id^="player"]').forEach(div => {
+                    if (div.id !== `player${id}` && div.style.display !== 'none') {
+                        div.style.display = 'none';
+                        const audio = div.querySelector('audio');
+                        if (audio) audio.pause();
+                    }
+                });
+                
                 playerDiv.style.display = 'block';
                 player.play();
             } else {
@@ -144,35 +249,129 @@
         }
 
         // 删除作品
-        async function deleteComposition(id) {
-            if (!confirm('确定要删除这个作品吗？')) {
-                return;
-            }
+        function deleteComposition(id, title) {
+            // 设置模态框内容
+            document.getElementById('deleteTrackTitle').textContent = title;
             
-            try {
-                const response = await fetch(`/delete_composition/${id}`, {
-                    method: 'DELETE'
-                });
-                
-                const data = await response.json();
-                if (data.success) {
-                    loadCompositions();
-                } else {
-                    alert(data.message);
+            // 设置确认按钮事件
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            confirmBtn.onclick = async function() {
+                try {
+                    const response = await fetch(`/delete_track/${id}`, {
+                        method: 'POST'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    // 关闭模态框
+                    const modalEl = document.getElementById('deleteTrackModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+                    
+                    if (data.success) {
+                        // 淡出并移除卡片
+                        const card = document.querySelector(`[data-id="${id}"]`);
+                        if (card) {
+                            card.classList.add('fade-out');
+                            setTimeout(() => {
+                                card.remove();
+                                
+                                // 更新计数
+                                const titleElement = document.querySelector('.card-header h5');
+                                if (titleElement) {
+                                    const count = document.querySelectorAll('.composition-card').length;
+                                    titleElement.textContent = `音乐库 (${count})`;
+                                    
+                                    // 如果没有作品了，显示空状态
+                                    if (count === 0) {
+                                        loadCompositions();
+                                    }
+                                }
+                            }, 300);
+                        }
+                        
+                        // 显示成功消息
+                        showToast('删除成功', '作品已成功删除', 'success');
+                    } else {
+                        // 显示错误消息
+                        showToast('删除失败', data.message, 'danger');
+                    }
+                    
+                } catch (error) {
+                    console.error('删除失败', error);
+                    showToast('删除失败', '操作出错，请稍后再试', 'danger');
                 }
-            } catch (error) {
-                alert('删除作品失败');
-            }
+            };
+            
+            // 显示模态框
+            const modalEl = document.getElementById('deleteTrackModal');
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
         }
 
-        // 搜索作品
-        document.getElementById('searchButton').addEventListener('click', () => {
-            const query = document.getElementById('searchInput').value;
-            // TODO: 实现搜索功能
-        });
+        // 显示提示消息
+        function showToast(title, message, type) {
+            const toastContainer = document.querySelector('.toast-container');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type}`;
+            toast.setAttribute('role', 'alert');
+            toast.setAttribute('aria-live', 'assertive');
+            toast.setAttribute('aria-atomic', 'true');
+            
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <strong>${title}</strong> ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast, {
+                autohide: true,
+                delay: 3000
+            });
+            
+            bsToast.show();
+            
+            // 在 Toast 隐藏后移除元素
+            toast.addEventListener('hidden.bs.toast', function() {
+                toast.remove();
+            });
+        }
 
-        // 页面加载时加载作品列表
-        loadCompositions();
+        // 设置搜索功能
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim();
+            
+            // 过滤显示
+            const cards = document.querySelectorAll('.composition-card');
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                const title = card.querySelector('h5').textContent.toLowerCase();
+                const description = card.querySelector('p').textContent.toLowerCase();
+                const searchText = query.toLowerCase();
+                
+                const parent = card.parentElement;
+                
+                if (title.includes(searchText) || description.includes(searchText)) {
+                    parent.style.display = '';
+                    visibleCount++;
+                } else {
+                    parent.style.display = 'none';
+                }
+            });
+            
+            // 更新计数
+            const titleElement = document.querySelector('.card-header h5');
+            if (titleElement) {
+                titleElement.textContent = `音乐库 (${visibleCount})`;
+            }
+        });
     </script>
 </body>
 </html> 

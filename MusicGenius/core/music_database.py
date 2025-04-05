@@ -369,68 +369,51 @@ class MusicDatabase:
         Returns:
             list: 曲目列表
         """
-        sql = '''
-        SELECT DISTINCT t.id, t.title, t.artist, t.genre, t.filepath, t.duration, t.tempo, t.key, t.mode
-        FROM tracks t
-        '''
-        
-        params = []
-        where_clauses = []
-        
-        # 如果有标签条件，添加JOIN
-        if tag:
-            sql += '''
-            JOIN track_tags tt ON t.id = tt.track_id
-            JOIN tags tg ON tt.tag_id = tg.id
+        try:
+            # 简化查询，只获取基本字段
+            sql = '''
+            SELECT id, title, genre, filepath, duration, tempo
+            FROM tracks
             '''
-            where_clauses.append("tg.name = %s")
-            params.append(tag)
-        
-        # 添加其他条件
-        if query:
-            where_clauses.append("(t.title LIKE %s OR t.artist LIKE %s)")
-            params.extend([f"%{query}%", f"%{query}%"])
-        
-        if genre:
-            where_clauses.append("t.genre = %s")
-            params.append(genre)
-        
-        if key:
-            where_clauses.append("t.key = %s")
-            params.append(key)
-        
-        if tempo_range:
-            where_clauses.append("t.tempo BETWEEN %s AND %s")
-            params.extend(tempo_range)
-        
-        # 组合WHERE子句
-        if where_clauses:
-            sql += " WHERE " + " AND ".join(where_clauses)
-        
-        # 添加限制
-        sql += f" LIMIT {limit}"
-        
-        # 执行查询
-        self.cursor.execute(sql, params)
-        results = self.cursor.fetchall()
-        
-        # 格式化结果
-        tracks = []
-        for row in results:
-            track = {
-                'id': row[0],
-                'title': row[1],
-                'artist': row[2],
-                'genre': row[3],
-                'filepath': row[4],
-                'duration': row[5],
-                'tempo': row[6],
-                'key': row[7],
-                'mode': row[8]
-            }
-            tracks.append(track)
-        
-        return tracks
+            
+            params = []
+            where_clauses = []
+            
+            # 添加条件
+            if query and query.strip():
+                where_clauses.append("title LIKE %s")
+                params.append(f"%{query}%")
+            
+            if genre and genre.strip():
+                where_clauses.append("genre = %s")
+                params.append(genre)
+            
+            # 组合WHERE子句
+            if where_clauses:
+                sql += " WHERE " + " AND ".join(where_clauses)
+            
+            print(sql)
+            # 执行查询
+            self.cursor.execute(sql, params)
+            results = self.cursor.fetchall()
+            
+            # 格式化结果
+            tracks = []
+            for row in results:
+                track = {
+                    'id': row[0],
+                    'title': row[1],
+                    'genre': row[2],
+                    'filepath': row[3],
+                    'duration': row[4],
+                    'tempo': row[5],
+                }
+                tracks.append(track)
+            print(tracks)
+            return tracks
+        except Exception as e:
+            print(f"Error in search_tracks: {str(e)}")
+            return []
     
     def get_all_genres(self):
         """获取所有曲风

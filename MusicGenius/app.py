@@ -80,6 +80,26 @@ class MusicGeniusApp:
         self.host = host
         self.port = port
         self.debug = debug
+        
+        # 注册自定义Jinja2过滤器
+        @self.app.template_filter('basename')
+        def basename_filter(path):
+            """获取文件路径的基本名称"""
+            if not path:
+                return ''
+            return os.path.basename(path)
+        
+        @self.app.template_filter('format_datetime')
+        def format_datetime_filter(value):
+            """格式化日期时间"""
+            if isinstance(value, str):
+                try:
+                    value = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                except:
+                    pass
+            if isinstance(value, datetime):
+                return value.strftime('%Y-%m-%d %H:%M:%S')
+            return value
     
     def _register_routes(self):
         """注册所有路由"""
@@ -100,33 +120,20 @@ class MusicGeniusApp:
             # 获取可用的乐器
             available_instruments = self.music_creator.get_available_instruments()
             
-            return render_template('index.html',
-                                stats=stats,
-                                available_styles=available_styles,
-                                available_instruments=available_instruments)
+            return render_template('index.html', 
+                              stats=stats, 
+                              available_styles=available_styles,
+                              available_instruments=available_instruments)
         
         @self.app.route('/library')
         def library():
             """音乐库页面"""
-            # 获取查询参数
-            query = request.args.get('query', '')
-            genre = request.args.get('genre', '')
-            tag = request.args.get('tag', '')
-            
-            # 搜索曲目
-            tracks = self.music_db.search_tracks(query=query, genre=genre, tag=tag)
-            
-            # 获取所有曲风和标签，用于筛选
-            genres = self.music_db.get_all_genres()
-            tags = self.music_db.get_all_tags()
-            
-            return render_template('library.html',
-                                tracks=tracks,
-                                genres=genres,
-                                tags=tags,
-                                query=query,
-                                selected_genre=genre,
-                                selected_tag=tag)
+            print('library')
+            try:
+                return render_template('library.html')
+            except Exception as e:
+                print(f"Error in library route: {str(e)}")
+                return render_template('error.html', error=str(e))
         
         @self.app.route('/track/<int:track_id>')
         def track_detail(track_id):
@@ -366,8 +373,8 @@ class MusicGeniusApp:
                         'success': False,
                         'message': '没有选择文件'
                     })
-                
-                # 保存上传的文件
+            
+            # 保存上传的文件
                 filename = secure_filename(file.filename)
                 upload_path = os.path.join(self.app.config['UPLOAD_FOLDER'], filename)
                 file.save(upload_path)
@@ -714,6 +721,30 @@ class MusicGeniusApp:
                     'success': False,
                     'message': f'学习风格失败: {str(e)}'
                 })
+        
+        @self.app.route('/list_compositions')
+        def list_compositions():
+            """获取所有音乐作品的列表"""
+            print('list_compositions')
+            try:
+                tracks = self.music_db.search_tracks()
+                # 转换为前端期望的格式
+                compositions = []
+                for track in tracks:
+                    # 构建作品对象
+                    composition = {
+                        'id': track['id'],
+                        'title': track['title'],
+                        'description': track.get('genre', ''),
+                        'effects': track.get('tags', []),
+                        'accompaniment_file': f"/output/{os.path.basename(track['filepath'])}"
+                    }
+                    compositions.append(composition)
+                    
+                return jsonify(compositions)
+            except Exception as e:
+                print(f"Error in list_compositions route: {str(e)}")
+                return jsonify([])
     
     def run(self):
         """运行Web应用"""
@@ -758,4 +789,4 @@ def main():
     app.run()
 
 if __name__ == "__main__":
-    main()
+    main() 
