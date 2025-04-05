@@ -142,12 +142,12 @@ class MusicCreator:
         """生成旋律
         
         Args:
-            style: 音乐风格
-            num_notes: 音符数量
-            temperature: 随机性参数 (0.0-1.0)
-            tempo_bpm: 速度（每分钟节拍数）
-            instrument_name: 乐器名称
-            generator_type: 生成器类型 ('simple' 或 'lstm')
+            style (str): 音乐风格
+            num_notes (int): 音符数量
+            temperature (float): 随机性参数
+            tempo_bpm (int): 节拍数
+            instrument_name (str): 乐器名称
+            generator_type (str): 生成器类型：'simple' 或 'lstm'
             
         Returns:
             str: 生成的旋律文件路径
@@ -180,7 +180,8 @@ class MusicCreator:
             audio_data = self.simple_generator.generate(
                 style=style,
                 length=num_notes // 8,  # 将音符数量转换为小节数
-                seed=None
+                seed=None,
+                instrument_name=instrument_name
             )
             print('start sf.write')
             # 保存音频数据为WAV文件
@@ -639,27 +640,17 @@ class MusicCreator:
         """
         # 使用 music21 提供的标准乐器类
         potential_instruments = [
-            'Piano',
-            'Violin',
-            'Flute',
-            'Guitar',
-            'Trumpet',
-            'Saxophone',
-            'Clarinet',
-            'Bass',
+            '钢琴',
+            '小提琴',
+            '长笛',
+            '吉他',
+            '小号',
+            '萨克斯',
+            '单簧管',
+            '贝斯',
         ]
         
-        standard_instruments = []
-        
-        for inst_name in potential_instruments:
-            try:
-                inst_class = getattr(instrument, inst_name)
-                inst = inst_class()
-                standard_instruments.append(inst)
-            except AttributeError:
-                print(f"Instrument {inst_name} does not exist in music21.instrument")
-        
-        return [inst.instrumentName for inst in standard_instruments]
+        return potential_instruments;
     
     def save_composition(self, title: str, description: str, 
                         accompaniment_file: str, melody_file: str,
