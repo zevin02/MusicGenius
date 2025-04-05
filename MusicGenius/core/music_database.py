@@ -106,7 +106,6 @@ class MusicDatabase:
             filepath VARCHAR(512) UNIQUE,
             duration INT,
             tempo INT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_title (title),
             INDEX idx_genre (genre)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -187,9 +186,9 @@ class MusicDatabase:
 
             # 执行插入
             self.cursor.execute('''
-            INSERT INTO tracks (title, genre, filepath, duration, tempo, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', (title, genre, title, duration, tempo, datetime.now()))
+            INSERT INTO tracks (title, genre, filepath, duration, tempo)
+            VALUES (%s, %s, %s, %s, %s)
+            ''', (title, genre, title, duration, tempo))
             
             track_id = self.cursor.lastrowid
             
