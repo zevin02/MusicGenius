@@ -831,7 +831,7 @@ def main():
     parser = argparse.ArgumentParser(description="启动 MusicGenius 应用")
     parser.add_argument('--db_host', type=str, default='localhost', help='MySQL 服务器地址')
     parser.add_argument('--db_user', type=str, default='root', help='MySQL 用户名')
-    parser.add_argument('--db_password', type=str, required=True, help='MySQL 密码')  # 必填参数
+    parser.add_argument('--db_password', type=str, default='root123@', help='MySQL 密码')  # 必填参数
     parser.add_argument('--db_name', type=str, default='music_genius', help='MySQL 数据库名')
     parser.add_argument('--host', type=str, default='0.0.0.0', help='应用主机地址')
     parser.add_argument('--port', type=int, default=5000, help='应用端口号')

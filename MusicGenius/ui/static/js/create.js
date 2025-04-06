@@ -126,7 +126,7 @@ function handleSubmit(e) {
             showToast('旋律生成成功', '您的旋律已生成，您可以播放、下载或保存到音乐库', 'success');
         } else {
             // 显示错误消息
-            showToast('生成失败', data.error || '生成旋律时发生错误', 'error');
+            // showToast('生成失败', data.error || '生成旋律时发生错误', 'error');
         }
     })
     .catch(error => {
