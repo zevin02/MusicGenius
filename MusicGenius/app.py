@@ -65,7 +65,7 @@ class MusicGeniusApp:
             database=db_name
         )
         
-        # 创建Flask应用
+    # 创建Flask应用
         self.app = Flask(__name__,
                          static_folder=static_folder,
                          template_folder=template_folder)
@@ -119,12 +119,12 @@ class MusicGeniusApp:
             
             # 获取可用的乐器
             available_instruments = self.music_creator.get_available_instruments()
-            
+        
             return render_template('index.html', 
                               stats=stats, 
                               available_styles=available_styles,
                               available_instruments=available_instruments)
-        
+    
         @self.app.route('/library')
         def library():
             """音乐库页面"""
@@ -183,8 +183,64 @@ class MusicGeniusApp:
                 temperature = float(request.form.get('temperature', 1.0))  # 随机性参数
                 tempo_bpm = int(request.form.get('tempo_bpm', 120))  # 节拍数
                 instrument_name = request.form.get('instrument', 'Piano')  # 乐器
-                generator_type = request.form.get('generator_type', 'lstm')  # 生成器类型：'simple' 或 'lstm'
+                generator_type = request.form.get('generator_type', 'simple')  # 生成器类型：'simple' 或 'lstm'
                 style = request.form.get('style', '古典')  # 音乐风格
+                
+                # 解析特效参数
+                effects = []
+                effects_config = {}
+                
+                # 混响
+                if 'reverb' in request.form and request.form['reverb'] == 'on':
+                    print('添加混响效果')
+                    effects.append('reverb')
+                    effects_config['reverb'] = {
+                        'room_size': float(request.form.get('reverb_room_size', 0.8)),
+                        'damping': float(request.form.get('reverb_damping', 0.5)),
+                        'wet_level': float(request.form.get('reverb_wet_level', 0.3)),
+                        'dry_level': float(request.form.get('reverb_dry_level', 0.7))
+                    }
+                
+                # 延迟
+                if 'delay' in request.form and request.form['delay'] == 'on':
+                    print('添加延迟效果')
+                    effects.append('delay')
+                    effects_config['delay'] = {
+                        'delay_time': float(request.form.get('delay_time', 0.5)),
+                        'feedback': float(request.form.get('delay_feedback', 0.5)),
+                        'wet_level': float(request.form.get('delay_wet_level', 0.5)),
+                        'dry_level': float(request.form.get('delay_dry_level', 0.5))
+                    }
+                
+                # TODO ：合唱 有问题
+                if 'chorus' in request.form and request.form['chorus'] == 'on':
+                    print('添加合唱效果')
+                    effects.append('chorus')
+                    effects_config['chorus'] = {
+                        'rate': float(request.form.get('chorus_rate', 0.5)),
+                        'depth': float(request.form.get('chorus_depth', 0.002)),
+                        'voices': int(request.form.get('chorus_voices', 3))
+                    }
+                
+                # 失真
+                if 'distortion' in request.form and request.form['distortion'] == 'on':
+                    print('添加失真效果')
+                    effects.append('distortion')
+                    effects_config['distortion'] = {
+                        'amount': float(request.form.get('distortion_amount', 0.5)),
+                        'wet_level': float(request.form.get('distortion_wet_level', 0.5)),
+                        'dry_level': float(request.form.get('distortion_dry_level', 0.5))
+                    }
+                
+                # 均衡器
+                if 'eq' in request.form and request.form['eq'] == 'on':
+                    print('添加均衡器效果')
+                    effects.append('eq')
+                    effects_config['eq'] = {
+                        'low_gain': float(request.form.get('eq_low_gain', 1.0)),
+                        'mid_gain': float(request.form.get('eq_mid_gain', 1.0)),
+                        'high_gain': float(request.form.get('eq_high_gain', 1.0))
+                    }
       
                 # 生成MIDI文件
                 output_path = self.music_creator.generate_melody(
@@ -193,9 +249,11 @@ class MusicGeniusApp:
                     temperature=temperature,
                     tempo_bpm=tempo_bpm,
                     instrument_name=instrument_name,
-                    generator_type=generator_type
+                    generator_type=generator_type,
+                    effects=effects if effects else None,
+                    effects_config=effects_config if effects_config else None
                 )
-                
+                print('finish make')
                 # 获取相对路径
                 relative_path = os.path.relpath(output_path, self.output_dir)# 获取了文件名
                 midi_filename='temp.mid'
@@ -212,7 +270,7 @@ class MusicGeniusApp:
                     'success': False,
                     'message': f'生成旋律失败: {str(e)}'
                 })
-        
+            
         @self.app.route('/transfer_style', methods=['POST'])
         def transfer_style():
             """风格迁移API"""
@@ -298,6 +356,7 @@ class MusicGeniusApp:
                 
                 # 混响
                 if 'reverb' in request.form and request.form['reverb'] == 'on':
+                    print('reverb')
                     effects_params['reverb'] = {
                         'room_size': float(request.form.get('reverb_room_size', 0.8)),
                         'damping': float(request.form.get('reverb_damping', 0.5)),
@@ -307,6 +366,8 @@ class MusicGeniusApp:
                 
                 # 延迟
                 if 'delay' in request.form and request.form['delay'] == 'on':
+                    print('delay')
+
                     effects_params['delay'] = {
                         'delay_time': float(request.form.get('delay_time', 0.5)),
                         'feedback': float(request.form.get('delay_feedback', 0.5)),
@@ -316,6 +377,8 @@ class MusicGeniusApp:
                 
                 # 合唱
                 if 'chorus' in request.form and request.form['chorus'] == 'on':
+                    print('chorus')
+
                     effects_params['chorus'] = {
                         'rate': float(request.form.get('chorus_rate', 0.5)),
                         'depth': float(request.form.get('chorus_depth', 0.002)),
@@ -326,6 +389,8 @@ class MusicGeniusApp:
                 
                 # 失真
                 if 'distortion' in request.form and request.form['distortion'] == 'on':
+                    print('distortion')
+
                     effects_params['distortion'] = {
                         'amount': float(request.form.get('distortion_amount', 0.5)),
                         'wet_level': float(request.form.get('distortion_wet_level', 0.5)),
@@ -374,7 +439,7 @@ class MusicGeniusApp:
                         'message': '没有选择文件'
                     })
             
-            # 保存上传的文件
+                # 保存上传的文件
                 filename = secure_filename(file.filename)
                 upload_path = os.path.join(self.app.config['UPLOAD_FOLDER'], filename)
                 file.save(upload_path)
@@ -443,18 +508,18 @@ class MusicGeniusApp:
                 
                 # 获取相对路径
                 relative_path = os.path.relpath(output_path, self.output_dir)
-                
+            
                 return jsonify({
                     'success': True,
-                    'midi_file': relative_path,
-                    'message': '轨道合并成功！'
+                        'midi_file': relative_path,
+                        'message': '轨道合并成功！'
                 })
             
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'合并轨道失败: {str(e)}'
-                })
+                        'message': f'合并轨道失败: {str(e)}'
+                    })
         
         @self.app.route('/output/<path:filename>')
         def download_file(filename):
@@ -709,18 +774,18 @@ class MusicGeniusApp:
                     epochs=epochs,
                     batch_size=batch_size
                 )
-                
+            
                 return jsonify({
                     'success': True,
-                    'model_path': model_path,
-                    'message': f'风格"{style_name}"学习成功！'
+                        'model_path': model_path,
+                        'message': f'风格"{style_name}"学习成功！'
                 })
             
             except Exception as e:
                 return jsonify({
                     'success': False,
-                    'message': f'学习风格失败: {str(e)}'
-                })
+                        'message': f'学习风格失败: {str(e)}'
+                    })
         
         @self.app.route('/list_compositions')
         def list_compositions():

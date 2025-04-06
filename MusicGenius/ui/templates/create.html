@@ -35,6 +35,52 @@
             margin: 20px 0;
             width: 100%;
         }
+        /* 特效面板样式 */
+        .effect-group {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .effect-header {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+        .effect-header label {
+            flex-grow: 1;
+            margin-left: 8px;
+        }
+        .btn-toggle-params {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .effect-params {
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .param-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .param-group label {
+            width: 100px;
+            font-size: 14px;
+        }
+        .param-group input[type="range"] {
+            flex-grow: 1;
+            margin: 0 10px;
+        }
+        .param-value {
+            width: 50px;
+            text-align: right;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -100,6 +146,150 @@
                             <option value="{{ instrument }}">{{ instrument }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <h4>音频特效</h4>
+                        
+                        <!-- 混响特效 -->
+                        <div class="effect-group">
+                            <div class="effect-header">
+                                <input type="checkbox" id="reverb" name="reverb">
+                                <label for="reverb">混响</label>
+                                <button type="button" class="btn-toggle-params" data-target="reverb-params">▼</button>
+                            </div>
+                            <div class="effect-params" id="reverb-params" style="display: none;">
+                                <div class="param-group">
+                                    <label for="reverb_room_size">房间大小:</label>
+                                    <input type="range" id="reverb_room_size" name="reverb_room_size" min="0" max="1" step="0.01" value="0.8">
+                                    <span class="param-value">0.8</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="reverb_damping">阻尼:</label>
+                                    <input type="range" id="reverb_damping" name="reverb_damping" min="0" max="1" step="0.01" value="0.5">
+                                    <span class="param-value">0.5</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="reverb_wet_level">湿信号:</label>
+                                    <input type="range" id="reverb_wet_level" name="reverb_wet_level" min="0" max="1" step="0.01" value="0.3">
+                                    <span class="param-value">0.3</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="reverb_dry_level">干信号:</label>
+                                    <input type="range" id="reverb_dry_level" name="reverb_dry_level" min="0" max="1" step="0.01" value="0.7">
+                                    <span class="param-value">0.7</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 延迟特效 -->
+                        <div class="effect-group">
+                            <div class="effect-header">
+                                <input type="checkbox" id="delay" name="delay">
+                                <label for="delay">延迟</label>
+                                <button type="button" class="btn-toggle-params" data-target="delay-params">▼</button>
+                            </div>
+                            <div class="effect-params" id="delay-params" style="display: none;">
+                                <div class="param-group">
+                                    <label for="delay_time">延迟时间:</label>
+                                    <input type="range" id="delay_time" name="delay_time" min="0.1" max="2" step="0.1" value="0.5">
+                                    <span class="param-value">0.5s</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="delay_feedback">反馈:</label>
+                                    <input type="range" id="delay_feedback" name="delay_feedback" min="0" max="0.9" step="0.01" value="0.5">
+                                    <span class="param-value">0.5</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="delay_wet_level">湿信号:</label>
+                                    <input type="range" id="delay_wet_level" name="delay_wet_level" min="0" max="1" step="0.01" value="0.5">
+                                    <span class="param-value">0.5</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="delay_dry_level">干信号:</label>
+                                    <input type="range" id="delay_dry_level" name="delay_dry_level" min="0" max="1" step="0.01" value="0.5">
+                                    <span class="param-value">0.5</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 合唱特效 -->
+                        <div class="effect-group">
+                            <div class="effect-header">
+                                <input type="checkbox" id="chorus" name="chorus">
+                                <label for="chorus">合唱</label>
+                                <button type="button" class="btn-toggle-params" data-target="chorus-params">▼</button>
+                            </div>
+                            <div class="effect-params" id="chorus-params" style="display: none;">
+                                <div class="param-group">
+                                    <label for="chorus_rate">频率:</label>
+                                    <input type="range" id="chorus_rate" name="chorus_rate" min="0.1" max="5" step="0.1" value="0.5">
+                                    <span class="param-value">0.5Hz</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="chorus_depth">深度:</label>
+                                    <input type="range" id="chorus_depth" name="chorus_depth" min="0.0001" max="0.01" step="0.0001" value="0.002">
+                                    <span class="param-value">0.002</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="chorus_voices">声部数:</label>
+                                    <input type="range" id="chorus_voices" name="chorus_voices" min="1" max="5" step="1" value="3">
+                                    <span class="param-value">3</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 失真特效 -->
+                        <div class="effect-group">
+                            <div class="effect-header">
+                                <input type="checkbox" id="distortion" name="distortion">
+                                <label for="distortion">失真</label>
+                                <button type="button" class="btn-toggle-params" data-target="distortion-params">▼</button>
+                            </div>
+                            <div class="effect-params" id="distortion-params" style="display: none;">
+                                <div class="param-group">
+                                    <label for="distortion_amount">强度:</label>
+                                    <input type="range" id="distortion_amount" name="distortion_amount" min="0" max="1" step="0.01" value="0.5">
+                                    <span class="param-value">0.5</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="distortion_wet_level">湿信号:</label>
+                                    <input type="range" id="distortion_wet_level" name="distortion_wet_level" min="0" max="1" step="0.01" value="0.5">
+                                    <span class="param-value">0.5</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="distortion_dry_level">干信号:</label>
+                                    <input type="range" id="distortion_dry_level" name="distortion_dry_level" min="0" max="1" step="0.01" value="0.5">
+                                    <span class="param-value">0.5</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 均衡器特效 -->
+                        <div class="effect-group">
+                            <div class="effect-header">
+                                <input type="checkbox" id="eq" name="eq">
+                                <label for="eq">均衡器</label>
+                                <button type="button" class="btn-toggle-params" data-target="eq-params">▼</button>
+                            </div>
+                            <div class="effect-params" id="eq-params" style="display: none;">
+                                <div class="param-group">
+                                    <label for="eq_low_gain">低频增益:</label>
+                                    <input type="range" id="eq_low_gain" name="eq_low_gain" min="0" max="2" step="0.1" value="1.0">
+                                    <span class="param-value">1.0</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="eq_mid_gain">中频增益:</label>
+                                    <input type="range" id="eq_mid_gain" name="eq_mid_gain" min="0" max="2" step="0.1" value="1.0">
+                                    <span class="param-value">1.0</span>
+                                </div>
+                                <div class="param-group">
+                                    <label for="eq_high_gain">高频增益:</label>
+                                    <input type="range" id="eq_high_gain" name="eq_high_gain" min="0" max="2" step="0.1" value="1.0">
+                                    <span class="param-value">1.0</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <button type="submit" class="button">生成旋律</button>
@@ -195,6 +385,55 @@
 
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 处理特效参数面板的显示/隐藏
+            document.querySelectorAll('.btn-toggle-params').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        const isVisible = targetElement.style.display !== 'none';
+                        targetElement.style.display = isVisible ? 'none' : 'block';
+                        this.textContent = isVisible ? '▼' : '▲';
+                    }
+                });
+            });
+            
+            // 处理滑块值的显示
+            document.querySelectorAll('input[type="range"]').forEach(function(slider) {
+                const valueSpan = slider.parentElement.querySelector('.param-value');
+                if (valueSpan) {
+                    // 设置初始值
+                    valueSpan.textContent = slider.value;
+                    
+                    // 添加输入事件监听器
+                    slider.addEventListener('input', function() {
+                        // 检查是否包含单位
+                        if (this.id === 'delay_time' || this.id === 'chorus_rate') {
+                            valueSpan.textContent = this.value + (this.id === 'delay_time' ? 's' : 'Hz');
+                        } else {
+                            valueSpan.textContent = this.value;
+                        }
+                    });
+                }
+            });
+            
+            // 为temperature滑块添加特殊处理
+            const temperatureSlider = document.getElementById('temperature');
+            if (temperatureSlider) {
+                const valueSpan = temperatureSlider.nextElementSibling;
+                if (valueSpan) {
+                    // 设置初始值
+                    valueSpan.textContent = (temperatureSlider.value / 100).toFixed(1);
+                    
+                    // 添加输入事件监听器
+                    temperatureSlider.addEventListener('input', function() {
+                        valueSpan.textContent = (this.value / 100).toFixed(1);
+                    });
+                }
+            }
+        });
+
         document.getElementById('melodyForm').onsubmit = async function(e) {
             e.preventDefault();
             
@@ -249,17 +488,19 @@
                                 }
                             } catch (error) {
                                 console.error('下载错误:', error);
-                                alert('下载文件失败，请稍后重试');
+                                alert('下载失败: ' + error.message);
                             }
                         };
-                        downloadWav.style.display = 'inline-block';
                     }
+                    
+                    // 滚动到播放器
+                    document.getElementById('melodyPlayer').scrollIntoView({ behavior: 'smooth' });
                 } else {
-                    alert('生成旋律失败：' + data.message);
+                    alert('生成失败: ' + data.message);
                 }
             } catch (error) {
-                console.error('Error:', error);
-                alert('发生错误：' + error.message);
+                console.error('请求错误:', error);
+                alert('生成请求失败: ' + error.message);
             }
         };
     </script>

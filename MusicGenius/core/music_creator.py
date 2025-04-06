@@ -138,7 +138,8 @@ class MusicCreator:
     
     def generate_melody(self, style: str, num_notes: int = 200, temperature: float = 1.0,
                        tempo_bpm: int = 120, instrument_name: str = 'Piano',
-                       generator_type: str = 'lstm') -> str:
+                       generator_type: str = 'lstm', effects: Optional[List[str]] = None,
+                       effects_config: Optional[Dict] = None) -> str:
         """生成旋律
         
         Args:
@@ -148,6 +149,8 @@ class MusicCreator:
             tempo_bpm (int): 节拍数
             instrument_name (str): 乐器名称
             generator_type (str): 生成器类型：'simple' 或 'lstm'
+            effects (List[str], optional): 特效列表，如 ['reverb', 'chorus']
+            effects_config (Dict, optional): 特效参数配置
             
         Returns:
             str: 生成的旋律文件路径
@@ -181,7 +184,9 @@ class MusicCreator:
                 style=style,
                 length=num_notes // 8,  # 将音符数量转换为小节数
                 seed=None,
-                instrument_name=instrument_name
+                instrument_name=instrument_name,
+                effects=effects,
+                effects_config=effects_config
             )
             print('start sf.write')
             # 保存音频数据为WAV文件

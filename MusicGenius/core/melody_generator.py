@@ -4,7 +4,7 @@
 
 import numpy as np
 import os
-from typing import Optional, List
+from typing import Optional, List, Dict
 from midiutil import MIDIFile
 # 这个也是旋律生成的模块：但是这边生成简单的旋律，
 class MelodyGenerator:
@@ -74,7 +74,8 @@ class MelodyGenerator:
             '蓝调': (55, 79)   # G3-G5
         }
     
-    def generate(self, style: str, length: int = 8, seed: Optional[str] = None, instrument_name: str = 'Piano') -> np.ndarray:
+    def generate(self, style: str, length: int = 8, seed: Optional[str] = None, instrument_name: str = 'Piano', 
+                 effects: Optional[List[str]] = None, effects_config: Optional[Dict] = None) -> np.ndarray:
         """生成旋律
         
         Args:
@@ -82,6 +83,8 @@ class MelodyGenerator:
             length: 旋律长度（小节数）
             seed: 随机种子
             instrument_name: 乐器名称（支持中文或英文）
+            effects: 效果列表，如['reverb', 'chorus']
+            effects_config: 效果参数配置
             
         Returns:
             np.ndarray: 生成的旋律音频数据
@@ -105,6 +108,8 @@ class MelodyGenerator:
         
         print(f"使用风格: {style}")
         print(f"使用乐器: {instrument_name}")
+        if effects:
+            print(f"使用特效: {', '.join(effects)}")
         
         # 获取音阶和节奏模式
         scale = self.scales[style]
@@ -121,6 +126,11 @@ class MelodyGenerator:
         
         # 将MIDI转换为音频
         audio = self._midi_to_audio(midi_notes, instrument)
+        
+        # 应用特效（如果有）
+        if effects and effects_config:
+            print('应用音频特效')
+            audio = self._apply_effects(audio, effects, effects_config)
         
         return audio
     
@@ -234,3 +244,111 @@ class MelodyGenerator:
         os.remove(wav_file)
         
         return audio 
+    
+    def _apply_effects(self, audio: np.ndarray, effects: List[str], effects_config: Dict) -> np.ndarray:
+        """应用音频特效
+        
+        Args:
+            audio: 音频数据
+            effects: 特效列表
+            effects_config: 特效配置参数
+            
+        Returns:
+            np.ndarray: 处理后的音频数据
+        """
+        from ..effects.audio_effects import AudioEffects
+        
+        # 创建音频特效处理器
+        audio_effects = AudioEffects(sr=self.sample_rate)
+        
+        # 处理后的音频
+        processed_audio = audio.copy()
+        
+        try:
+            # 应用每个特效
+            for effect in effects:
+                effect_params = effects_config.get(effect, {})
+                
+                if effect == 'reverb':
+                    print(f"应用混响效果，参数: {effect_params}")
+                    processed_audio = audio_effects.apply_reverb(
+                        processed_audio,
+                        room_size=effect_params.get('room_size', 0.8),
+                        damping=effect_params.get('damping', 0.5),
+                        wet_level=effect_params.get('wet_level', 0.3),
+                        dry_level=effect_params.get('dry_level', 0.7)
+                    )
+                elif effect == 'delay':
+                    print(f"应用延迟效果，参数: {effect_params}")
+                    # 改进的延迟效果实现
+                    delay_time = effect_params.get('delay_time', 0.5)  # 秒
+                    feedback = effect_params.get('feedback', 0.5)
+                    wet_level = effect_params.get('wet_level', 0.5)
+                    dry_level = effect_params.get('dry_level', 0.5)
+                    
+                    delay_samples = int(delay_time * self.sample_rate)
+                    
+                    # 创建延迟缓冲区
+                    delayed_signal = np.zeros_like(processed_audio)
+                    if delay_samples < len(processed_audio):
+                        delayed_signal[delay_samples:] = processed_audio[:-delay_samples]
+                    
+                    # 添加反馈
+                    temp_buffer = delayed_signal.copy()
+                    for i in range(1, 5):  # 限制反馈次数，避免过度计算
+                        if delay_samples * i < len(processed_audio):
+                            feedback_gain = feedback ** i
+                            if feedback_gain < 0.01:  # 当反馈增益太小时停止
+                                break
+                            temp_buffer[delay_samples * i:] += processed_audio[:-(delay_samples * i)] * feedback_gain
+                    
+                    # 混合原始信号和延迟信号
+                    processed_audio = processed_audio * dry_level + temp_buffer * wet_level
+                    
+                    # 归一化，避免削波
+                    max_amplitude = np.max(np.abs(processed_audio))
+                    if max_amplitude > 0.95:
+                        processed_audio = processed_audio / max_amplitude * 0.95
+                
+                elif effect == 'chorus':
+                    print(f"应用合唱效果，参数: {effect_params}")
+                    processed_audio = audio_effects.apply_chorus(
+                        processed_audio,
+                        rate=effect_params.get('rate', 0.5),
+                        depth=effect_params.get('depth', 0.002),
+                        voices=effect_params.get('voices', 3)
+                    )
+                elif effect == 'distortion':
+                    print(f"应用失真效果，参数: {effect_params}")
+                    processed_audio = audio_effects.apply_distortion(
+                        processed_audio,
+                        amount=effect_params.get('amount', 0.5),
+                        wet_level=effect_params.get('wet_level', 0.5),
+                        dry_level=effect_params.get('dry_level', 0.5)
+                    )
+                elif effect == 'eq':
+                    print(f"应用均衡器效果，参数: {effect_params}")
+                    processed_audio = audio_effects.apply_eq(
+                        processed_audio,
+                        low_gain=effect_params.get('low_gain', 1.0),
+                        mid_gain=effect_params.get('mid_gain', 1.0),
+                        high_gain=effect_params.get('high_gain', 1.0)
+                    )
+                    
+                # 检查处理后的音频数据是否有效
+                if np.isnan(processed_audio).any() or np.isinf(processed_audio).any():
+                    print(f"警告: 特效 {effect} 产生了无效数据，恢复为原始音频")
+                    processed_audio = audio.copy()
+                    break
+            
+            # 最终归一化，确保不会有削波
+            max_amplitude = np.max(np.abs(processed_audio))
+            if max_amplitude > 0.95:
+                processed_audio = processed_audio / max_amplitude * 0.95
+            
+        except Exception as e:
+            print(f"应用特效时出错: {str(e)}")
+            # 出错时返回原始音频
+            return audio
+        
+        return processed_audio 
