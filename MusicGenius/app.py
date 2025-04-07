@@ -189,58 +189,68 @@ class MusicGeniusApp:
                 # 解析特效参数
                 effects = []
                 effects_config = {}
-                
+                # 音频效果器参数配置模块
+                # 功能：工具用户表单选择激活音频特效，并配置dsp算法参数
                 # 混响
                 if 'reverb' in request.form and request.form['reverb'] == 'on':
                     print('添加混响效果')
+                    # schroeder 混响模型参数
                     effects.append('reverb')
                     effects_config['reverb'] = {
-                        'room_size': float(request.form.get('reverb_room_size', 0.8)),
-                        'damping': float(request.form.get('reverb_damping', 0.5)),
-                        'wet_level': float(request.form.get('reverb_wet_level', 0.3)),
-                        'dry_level': float(request.form.get('reverb_dry_level', 0.7))
+                        'room_size': float(request.form.get('reverb_room_size', 0.8)), # 早期放射密度
+                        'damping': float(request.form.get('reverb_damping', 0.5)), # 混响尾音的明亮度
+                        'wet_level': float(request.form.get('reverb_wet_level', 0.3)), # 体现声场融合度
+                        'dry_level': float(request.form.get('reverb_dry_level', 0.7)) # 声音清晰度
                     }
+                    # 理论依据：Schroeder人工混响算法（全通滤波器+梳状滤波器串联）
                 
                 # 延迟
                 if 'delay' in request.form and request.form['delay'] == 'on':
                     print('添加延迟效果')
+                    # 延迟线(Delay Line)参数
                     effects.append('delay')
                     effects_config['delay'] = {
-                        'delay_time': float(request.form.get('delay_time', 0.5)),
-                        'feedback': float(request.form.get('delay_feedback', 0.5)),
-                        'wet_level': float(request.form.get('delay_wet_level', 0.5)),
-                        'dry_level': float(request.form.get('delay_dry_level', 0.5))
+                        'delay_time': float(request.form.get('delay_time', 0.5)), #对应声波反射路径长度
+                        'feedback': float(request.form.get('delay_feedback', 0.5)), #决定回声衰减速率
+                        'wet_level': float(request.form.get('delay_wet_level', 0.5)),# 延迟信号混合比
+                        'dry_level': float(request.form.get('delay_dry_level', 0.5))# 原始信号保留比
                     }
+                    # 技术实现：环形缓冲区+反馈网络，数学表达式 y[n] = x[n] + α·y[n−D]
                 
                 # TODO ：合唱 有问题
                 if 'chorus' in request.form and request.form['chorus'] == 'on':
                     print('添加合唱效果')
                     effects.append('chorus')
                     effects_config['chorus'] = {
-                        'rate': float(request.form.get('chorus_rate', 0.5)),
-                        'depth': float(request.form.get('chorus_depth', 0.002)),
-                        'voices': int(request.form.get('chorus_voices', 3))
+                        'rate': float(request.form.get('chorus_rate', 0.5)), # LFO调制频率 (Hz)，典型范围0.1-5Hz
+                        'depth': float(request.form.get('chorus_depth', 0.002)), # 调制深度（秒），对应音高偏移量（±半音）
+                        'voices': int(request.form.get('chorus_voices', 3)) # 虚拟声源数量，多声道叠加产生空间感
                     }
+                    # 核心算法：多延迟线并行 + 低频振荡器(LFO)调制
+                    # 常见问题：未做抗混叠处理会导致高频失真
                 
                 # 失真
                 if 'distortion' in request.form and request.form['distortion'] == 'on':
                     print('添加失真效果')
+                    # 非线性波形塑形参数
                     effects.append('distortion')
                     effects_config['distortion'] = {
-                        'amount': float(request.form.get('distortion_amount', 0.5)),
-                        'wet_level': float(request.form.get('distortion_wet_level', 0.5)),
-                        'dry_level': float(request.form.get('distortion_dry_level', 0.5))
+                        'amount': float(request.form.get('distortion_amount', 0.5)),    # 失真强度 (0.0-1.0)，对应波形削波程度
+                        'wet_level': float(request.form.get('distortion_wet_level', 0.5)),  # 失真信号混合比
+                        'dry_level': float(request.form.get('distortion_dry_level', 0.5)) # 原始信号保留比
                     }
                 
                 # 均衡器
                 if 'eq' in request.form and request.form['eq'] == 'on':
                     print('添加均衡器效果')
+
                     effects.append('eq')
                     effects_config['eq'] = {
-                        'low_gain': float(request.form.get('eq_low_gain', 1.0)),
-                        'mid_gain': float(request.form.get('eq_mid_gain', 1.0)),
-                        'high_gain': float(request.form.get('eq_high_gain', 1.0))
+                        'low_gain': float(request.form.get('eq_low_gain', 1.0)),# 低频增益（Hz范围: 20-250Hz）
+                        'mid_gain': float(request.form.get('eq_mid_gain', 1.0)),# 中频增益（Hz范围: 250-4kHz）
+                        'high_gain': float(request.form.get('eq_high_gain', 1.0)) # 高频增益（Hz范围: 4k-20kHz）
                     }
+                    # 实现方案：并联二阶IIR滤波器组（低通/带通/高通）
       
                 # 生成MIDI文件
                 output_path = self.music_creator.generate_melody(
