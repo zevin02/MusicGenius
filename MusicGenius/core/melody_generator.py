@@ -1,12 +1,16 @@
 """
 旋律生成器模块
 """
-
+# numpy是一个类似的array
 import numpy as np
 import os
 from typing import Optional, List, Dict
 from midiutil import MIDIFile
 # 这个也是旋律生成的模块：但是这边生成简单的旋律，
+# MIDI与音频的本质区别：midi值包含音符的符号化信息（音高，时长，力度），不包含声音波形，无法进行信号处理
+# 音频：有采样点组成的波形信号，是DSP操作的对象,
+
+
 class MelodyGenerator:
     """旋律生成器类"""
     
@@ -73,7 +77,7 @@ class MelodyGenerator:
             '电子': (48, 72),  # C3-C5
             '蓝调': (55, 79)   # G3-G5
         }
-    
+    # TODO:从前端传来的随机性和节拍数也没有被使用到
     def generate(self, style: str, length: int = 8, seed: Optional[str] = None, instrument_name: str = 'Piano', 
                  effects: Optional[List[str]] = None, effects_config: Optional[Dict] = None) -> np.ndarray:
         """生成旋律
@@ -89,15 +93,16 @@ class MelodyGenerator:
         Returns:
             np.ndarray: 生成的旋律音频数据
         """
+        # 设置随机数种子通过hassh生成一个随机数种子，rand（n），输出n个整数
         if seed:
             np.random.seed(hash(seed) % 2**32)
         
         # 确保使用有效的风格
         if style not in self.scales:
             print(f"未知风格: {style}，使用默认风格：古典")
-            style = '古典'
+            style = '古典' # 没设置就使用默认的古典风格
         
-        # 将中文乐器名称转换为英文
+        # 将instrument 从中文乐器名称转换为英文
         if instrument_name in self.instrument_name_map:
             instrument_name = self.instrument_name_map[instrument_name]
         
@@ -112,16 +117,17 @@ class MelodyGenerator:
             print(f"使用特效: {', '.join(effects)}")
         
         # 获取音阶和节奏模式
-        scale = self.scales[style]
-        rhythm = self.rhythm_patterns[style]
-        base_note_range = self.base_notes[style]
-        instrument = self.instruments[instrument_name]
+        scale = self.scales[style] # 音阶
+        rhythm = self.rhythm_patterns[style] # rhythm 韵律
+        base_note_range = self.base_notes[style]    # 获取该风格对应到的音阶范围
+        instrument = self.instruments[instrument_name] # 获取对应到midi标准的乐器编号
         
         print('开始生成MIDI音符')
         
-        # 生成MIDI音符
-        midi_notes = self._generate_midi_notes(scale, rhythm, length, base_note_range)
+        # TODO:还需要传入随机数和节拍数，和:生成MIDI音符
+        midi_notes = self._generate_midi_notes(scale, rhythm, length, base_note_range) # 生成的音符midi音符
         
+        # midi中只包含了音符的音高，时间和力度，不包含具体的音频波形，而音频处理通常是在音频信号中进行的（必须是生成音频之后应用音效）
         print('开始将MIDI转换为音频')
         
         # 将MIDI转换为音频
@@ -134,6 +140,7 @@ class MelodyGenerator:
         
         return audio
     
+    #  TODO:添加随机性和节拍数的参数 
     def _generate_midi_notes(self, scale: List[int], rhythm: List[float], 
                            length: int, note_range: tuple) -> List[tuple]:
         """生成MIDI音符
@@ -147,28 +154,31 @@ class MelodyGenerator:
         Returns:
             List[tuple]: MIDI音符列表，每个元素为(音高, 开始时间, 持续时间)
         """
-        notes = []
-        time = 0
-        beats_per_bar = 4
-        min_note, max_note = note_range
+        notes = []  # 初始化一个空的列表来存储生成的音符信息
+        time = 0    # 初始化时间变量，表明当前音符的开始时间
+        beats_per_bar = 4   # 设置每小节有4拍，（4/4拍是最常见的节奏）
+        min_note, max_note = note_range # 从传入的参数中获取音符范围
         
+        # 外层循环：生成指定数量的小节，（length参数只决定生成多少个小节）
         for bar in range(length):
+            # 内层循环：处理每小节中的每一拍
             for beat in range(beats_per_bar):
-                # 随机决定是播放音符还是休止符
+                
+                # 随机决定是播放音符还是休止符（生成0-1之间的随机数）
                 if np.random.random() > 0.2:  # 80%的概率播放音符
                     # 随机选择基础音符
                     base_note = np.random.randint(min_note, max_note - 12)  # 确保有足够的范围应用音阶
                     
-                    # 从音阶中选择相对音高
+                    # 从音阶中随机选择相对音高
                     scale_note = np.random.choice(scale)
                     
                     # 计算实际音高
                     pitch = base_note + scale_note
                     
-                    # 确保音高在合理范围内
+                    # 确保音高在合理范围内（21-108）
                     pitch = max(min(pitch, 108), 21)  # MIDI音符范围: 21-108
                     
-                    # 随机选择节奏
+                    # 随机选择节奏 从给定的节奏模式中随机选择一个韵律
                     duration = np.random.choice(rhythm)
                     
                     # 添加音符
@@ -192,19 +202,20 @@ class MelodyGenerator:
             np.ndarray: 音频数据
         """
         # 创建MIDI文件
-        midi = MIDIFile(1)
-        midi.addTempo(0, 0, 120)  # 120 BPM
+        midi = MIDIFile(1) # 参数1 表示音轨数量 （只生成一段音频）,独立的事件通道
+        midi.addTempo(0, 0, 120)  # 120 BPM  第0个音轨 
         
-        # 设置乐器
-        midi.addProgramChange(0, 0, 0, instrument)
+        # 设置乐器 ，乐器的音色
+        midi.addProgramChange(0, 0, 0, instrument) # 通道0
         
-        # 添加音符
+        # 添加音符 遍历所有的音符添加到音轨中
         for pitch, time, duration in notes:
+            # 添加音符 参数: 音轨编号, 通道编号, 时间（以1/100秒为单位）, 持续时间（以1/100秒为单位）, 音量（0-127）
             midi.addNote(0, 0, pitch, time, duration, 100)
         
         # 保存MIDI文件
         midi_filename = 'temp.mid'
-        with open(midi_filename, 'wb') as f:
+        with open(midi_filename, 'wb') as f:# 'wb' 表示写入二进制文件，将生成的写入到临时的mid文件中
             midi.writeFile(f)
 
         print(f"MIDI文件已创建: {midi_filename}")
@@ -215,6 +226,8 @@ class MelodyGenerator:
         
         return audio
     
+
+    # 将mid转化成音频
     def _synthesize_midi(self, midi_file: str) -> np.ndarray:
         """合成MIDI文件为音频
         
@@ -225,19 +238,22 @@ class MelodyGenerator:
             np.ndarray: 音频数据
         """
         # 使用FluidSynth合成MIDI
-        import subprocess
-        import soundfile as sf
+        import subprocess # 用于执行命令行工具
+        import soundfile as sf # 用于音频文件的读写
         # 在这个地方挂掉了
         # 生成临时WAV文件
         wav_file = 'temp.wav'
         # 创建一个空的 WAV 文件
         # 这里我们创建一个长度为0的音频文件
+        # 参数说明：文件名，空数组数组，采样率
+
         sf.write(wav_file, np.zeros((0,)), 44100)  # 44100 是采样率
         soundfont_path = '/usr/share/sounds/sf2/FluidR3_GM.sf2'
         result = subprocess.run(['fluidsynth', '-ni', soundfont_path, midi_file, '-F', wav_file, '-r', str(self.sample_rate)])
         
+        # 执行完毕后，我们删除临时文件
         # 读取音频数据
-        audio, _ = sf.read(wav_file)
+        audio, _ = sf.read(wav_file) # 读取申城的wav文件
         
         # 删除临时文件
         import os
@@ -245,6 +261,14 @@ class MelodyGenerator:
         
         return audio 
     
+
+    # 数字信号处理（DSP）和音频特效的关系密切，
+    # 音频特效（混响，均衡器，延迟）本质上是对音频波形（数字信号）的数字运算，需要以下dsp的核心技术
+    # 1. 时域处理（增益调整，动态范围压缩）：直接修改采样点的振幅值
+    # 2. 频域处理（均衡器，滤波器）通过傅立叶变化（FFT），将音频转化到频域，修改特定的频率，再逆变化回时域
+    # 3. 卷积运算（混响效果） ：将音频信号和冲击响应进行卷集（模拟不同空间的混响效果）
+
+
     def _apply_effects(self, audio: np.ndarray, effects: List[str], effects_config: Dict) -> np.ndarray:
         """应用音频特效
         

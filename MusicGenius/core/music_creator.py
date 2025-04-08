@@ -136,6 +136,7 @@ class MusicCreator:
         
         return save_path
     
+    # TODO:旋律生成 ,这边的temperature并没有被使用到(用户选择随机性),节拍数也没有被使用到
     def generate_melody(self, style: str, num_notes: int = 200, temperature: float = 1.0,
                        tempo_bpm: int = 120, instrument_name: str = 'Piano',
                        generator_type: str = 'lstm', effects: Optional[List[str]] = None,
@@ -158,49 +159,30 @@ class MusicCreator:
         # 创建输出目录
         output_dir = self.output_dir
 
-        
-        # 生成文件名
+        # 生成文件名：
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        midi_file = os.path.join(output_dir, f'melody_{style}_{generator_type}_{timestamp}.mid')
-        wav_file = os.path.join(output_dir, f'melody_{style}_{generator_type}_{timestamp}.wav')
+        # mid文件（midi文件，是数字音乐文件）的标准格式，记录和传输音乐信息，通过（指令序列描述音乐）
+        # 存储的不是音频，而是乐谱，存储音符（音高，时长），乐器类型（钢琴，吉他，弦乐器等），演奏强度等。编码生成midi序列（利用music21库实现）
+        # TODO:这个midi文件也没有被使用到
+        midi_file = os.path.join(output_dir, f'{style}_{instrument_name}_{timestamp}.mid')
+        wav_file = os.path.join(output_dir, f'{style}_{instrument_name}_{timestamp}.wav')
         print('wav_file'+wav_file);
-        if generator_type == 'lstm':
-            # 使用 LSTM 生成器
-            seed_notes = self._get_style_seed_notes(style)
-            melody = self.lstm_generator.generate_melody(
-                seed_notes=seed_notes,
-                num_notes=num_notes,
-                temperature=temperature
-            )
-            self.lstm_generator.generate_midi(
-                output_path=midi_file,
-                melody=melody,
-                tempo_bpm=tempo_bpm,
-                instrument_name=instrument_name
-            )
-        else:
-            # 使用简单生成器，直接获取音频数据,这个地方支持用不同的乐器
-            audio_data = self.simple_generator.generate(
-                style=style,
-                length=num_notes // 8,  # 将音符数量转换为小节数
-                seed=None,
-                instrument_name=instrument_name,
-                effects=effects,
-                effects_config=effects_config
-            )
-            print('start sf.write')
-            # 保存音频数据为WAV文件
-            sf.write(wav_file, audio_data, 44100)
-            print('finish sf.write')
-            return wav_file
-        
-        # 如果是LSTM生成的MIDI，转换为WAV
-        if generator_type == 'lstm':
-            self.midi_to_wav(midi_file, wav_file)
-        
-        
 
+        # 使用简单生成器，直接获取音频数据,这个地方支持用不同的乐器
+        audio_data = self.simple_generator.generate(
+            style=style,
+            length=num_notes // 8,  # 将音符数量转换为小节数,(代表要播放的音符数量，时长正相关)
+            seed=None,
+            instrument_name=instrument_name,
+            effects=effects,
+            effects_config=effects_config
+        )
+        print('start sf.write')
+        # 保存音频数据为WAV文件
+        sf.write(wav_file, audio_data, 44100)
+        print('finish sf.write')
         return wav_file
+        
     
     def _get_style_seed_notes(self, style: str) -> List[str]:
         """根据风格获取种子音符序列
