@@ -187,11 +187,12 @@ class MusicGeniusApp:
                 style = request.form.get('style', '古典')  # 音乐风格
                 
                 # 解析特效参数
-                effects = []
-                effects_config = {}
+                effects = [] #里面包含所有的特效类型
+                effects_config = {} # 当前特效的不同的参数
                 # 音频效果器参数配置模块
                 # 功能：工具用户表单选择激活音频特效，并配置dsp算法参数
                 # 混响
+                # 对不同参数进行设置
                 if 'reverb' in request.form and request.form['reverb'] == 'on':
                     print('添加混响效果')
                     # schroeder 混响模型参数

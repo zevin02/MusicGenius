@@ -16,7 +16,7 @@ class MelodyGenerator:
     
     def __init__(self):
         """初始化旋律生成器"""
-        self.sample_rate = 44100
+        self.sample_rate = 44100# 采样率
         
         # 定义音阶
         self.scales = {
@@ -253,7 +253,7 @@ class MelodyGenerator:
         
         # 执行完毕后，我们删除临时文件
         # 读取音频数据
-        audio, _ = sf.read(wav_file) # 读取申城的wav文件
+        audio, _ = sf.read(wav_file) # 读取申城的wav文件，自动解析wav文件
         
         # 删除临时文件
         import os
@@ -268,7 +268,7 @@ class MelodyGenerator:
     # 2. 频域处理（均衡器，滤波器）通过傅立叶变化（FFT），将音频转化到频域，修改特定的频率，再逆变化回时域
     # 3. 卷积运算（混响效果） ：将音频信号和冲击响应进行卷集（模拟不同空间的混响效果）
 
-
+    # np.ndarray是一个n维数组
     def _apply_effects(self, audio: np.ndarray, effects: List[str], effects_config: Dict) -> np.ndarray:
         """应用音频特效
         
@@ -289,10 +289,9 @@ class MelodyGenerator:
         processed_audio = audio.copy()
         
         try:
-            # 应用每个特效
+            # 遍历每个特效，并检查
             for effect in effects:
                 effect_params = effects_config.get(effect, {})
-                
                 if effect == 'reverb':
                     print(f"应用混响效果，参数: {effect_params}")
                     processed_audio = audio_effects.apply_reverb(

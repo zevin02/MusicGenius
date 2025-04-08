@@ -56,11 +56,13 @@ class AudioEffects:
         
         try:
             # 简化的Schroeder混响实现
+            # 疏状滤波器稀疏(控制放射次数和衰减速度)
             comb_filters = [0.86, 0.83, 0.80, 0.78]
+            # 全通滤波器系数（调整混响的扩散感，让声音更自然）
             allpass_filters = [0.7, 0.6]
             
             # 转换room_size为延迟线长度的系数
-            room_size_factor = 0.95 + room_size * 0.049
+            room_size_factor = 0.95 + room_size * 0.049 # 延迟时间随房间增加而略微增加
             
             # 延迟线长度（以样本为单位）- 跟据room_size调整
             delays = [int(self.sr * t * room_size_factor) for t in [0.0297, 0.0371, 0.0411, 0.0437]]
@@ -70,11 +72,12 @@ class AudioEffects:
             decays = [f * (1.0 - damping * 0.15) for f in comb_filters]
             
             # 创建湿信号数组
-            y_wet = np.zeros_like(y)
+            y_wet = np.zeros_like(y)# 创建一个和原始音频形状相同的全零数组
             
             # 应用并联梳状滤波器
+            # 模拟多次反射
             for i, (delay, decay) in enumerate(zip(delays, decays)):
-                y_comb = np.zeros_like(y)
+                y_comb = np.zeros_like(y)   # 单个梳状滤波器的输出
                 for n in range(len(y)):
                     if n >= delay:
                         y_comb[n] = y[n] + decay * y_comb[n - delay]
@@ -82,11 +85,12 @@ class AudioEffects:
                         y_comb[n] = y[n]
                 y_wet += y_comb / len(delays)
             
-            # 应用全通滤波器
+            # 应用全通滤波器 （扩散混响，让声音更自然）
             for i, (g, delay) in enumerate(zip(allpass_filters, allpass_delays)):
                 y_allpass = np.zeros_like(y_wet)
                 for n in range(len(y_wet)):
                     if n >= delay:
+                        # 全通公式：输出=增益*输入+前delay点输入-增益*前delay点的输出
                         y_allpass[n] = g * y_wet[n] + y_wet[n - delay] - g * y_allpass[n - delay]
                     else:
                         y_allpass[n] = y_wet[n]
@@ -158,7 +162,7 @@ class AudioEffects:
             warnings.warn(f"延迟效果处理出错: {str(e)}，返回原始音频")
             return y
     
-    def apply_chorus(self, y, rate=0.5, depth=0.002, wet_level=0.5, dry_level=0.5, voices=3):
+    def apply_chorus(self, y, rate=0.5, depth=0.002, voices=3):
         """应用合唱效果
         
         Args:
